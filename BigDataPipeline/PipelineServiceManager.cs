@@ -150,7 +150,7 @@ namespace BigDataPipeline
 
             // prepare plugin and work areas
             SimpleHelpers.ConfigManager.AddNonExistingKeys = true;
-            var pluginDir = prepareFilePath ("${basedir}/plugins");
+            var pluginDir = prepareFilePath (SimpleHelpers.ConfigManager.Get ("workFolder", "${basedir}/plugins"));
             var workDir = prepareFilePath (SimpleHelpers.ConfigManager.Get ("workFolder", "${basedir}/work"));
             
             (new System.IO.DirectoryInfo (pluginDir)).Create ();

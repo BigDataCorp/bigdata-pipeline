@@ -128,15 +128,16 @@ namespace BigDataPipeline
         /// <param name="args">The args.</param>
         internal static FlexibleOptions CheckCommandLineParams (string[] args, IDictionary<string, string> programOptions, bool thrownOnError)
         {
+            FlexibleOptions mergedOptions = null;
             FlexibleOptions argsOptions = new FlexibleOptions ();
             FlexibleOptions localOptions = new FlexibleOptions ();
-            FlexibleOptions webOptions = new FlexibleOptions ();
+            FlexibleOptions externalLoadedOptions = null;
 
             var option_set = new Mono.Options.OptionSet ();
             option_set.Add ("?|help|h", "Prints out the options.", opt => show_help (opt, option_set))
                 .Add ("logFilename=", "Log filename. Default value is: " + "${basedir}/log/" + typeof (Program).Namespace + ".log", opt => argsOptions.Set ("WebConfigurationFile", opt))
                 .Add ("logLevel=", "Log level (Fatal, Error, Warn, Info, Debug, Trace, Off). Default value is Info", opt => argsOptions.Set ("logLevel", opt))
-                .Add ("config=|webConfigurationFile=|S3ConfigurationPath=", "Address to a downloadable configuration file with json configuration options (default=[empty]).", opt => argsOptions.Set ("webConfigurationFile", opt));
+                .Add ("config=|webConfigurationFile=|S3ConfigurationPath=", "Address to a downloadable configuration file with json configuration options (default=[empty]).", opt => argsOptions.Set ("config", opt));
 
             // To add custom options just folow the example:            
             // option_set.Add ("t=|threads=", "Number of threads for the queue processing (default=1).", opt => ... );
@@ -174,15 +175,22 @@ namespace BigDataPipeline
                 option_set.Parse (args);
 
                 // adjust alias for web hosted configuration file
-                if (!localOptions.HasOption ("webConfigurationFile"))
-                    localOptions.Set ("webConfigurationFile", localOptions.Get ("S3ConfigurationPath", localOptions.Get ("config")));
+                if (String.IsNullOrEmpty (localOptions.Get ("config")))
+                    localOptions.Set ("config", localOptions.Get ("S3ConfigurationPath", localOptions.Get ("webConfigurationFile")));
 
-                // load and parse web hosted configuration file                
-                string webOptionsAddress = argsOptions.Get ("webConfigurationFile", localOptions.Get ("webConfigurationFile"));
-                if (!String.IsNullOrWhiteSpace (webOptionsAddress))
+                // merge arguments with app.config options. Priority: arguments > app.config
+                mergedOptions = FlexibleOptions.Merge (localOptions, argsOptions);
+
+                // load and parse web hosted configuration file (priority order: argsOptions > localOptions)
+                string externalConfigFile = mergedOptions.Get ("config", "");
+                bool configAbortOnError = mergedOptions.Get ("configAbortOnError", true);
+                if (!String.IsNullOrWhiteSpace (externalConfigFile))
                 {
-                    LogManager.GetCurrentClassLogger ().Info ("Loading configuration file from {0} ...", webOptionsAddress);
-                    webOptions = LoadWebConfigurationFile (webOptionsAddress, thrownOnError) ?? webOptions;
+                    foreach (var file in externalConfigFile.Trim(' ', '\'', '"', '[', ']').Split (',', ';'))
+                    {
+                        LogManager.GetCurrentClassLogger ().Info ("Loading configuration file from {0} ...", externalConfigFile);
+                        externalLoadedOptions = FlexibleOptions.Merge (externalLoadedOptions, LoadWebConfigurationFile (file.Trim (' ', '\'', '"'), configAbortOnError));
+                    }
                 }
             }
             catch (Mono.Options.OptionException ex)
@@ -203,28 +211,68 @@ namespace BigDataPipeline
             // 1. console arguments
             // 2. web configuration file
             // 3. local configuration file (app.config or web.config)
-            var merged = FlexibleOptions.Merge (localOptions, webOptions, argsOptions);
+            mergedOptions = FlexibleOptions.Merge (externalLoadedOptions, mergedOptions);
 
             // reinitialize log options if different from local configuration file
-            if (webOptions.HasOption ("logLevel") || argsOptions.HasOption ("logLevel") ||
-                webOptions.HasOption ("logFilename") || argsOptions.HasOption ("logFilename"))
+            if (externalLoadedOptions.HasOption ("logLevel") || argsOptions.HasOption ("logLevel") ||
+                externalLoadedOptions.HasOption ("logFilename") || argsOptions.HasOption ("logFilename"))
             {
-                InitializeLog (merged.Get ("logFilename"), merged.Get ("logLevel", "Info"));
+                InitializeLog (mergedOptions.Get ("logFilename"), mergedOptions.Get ("logLevel", "Info"));
             }
 
             // return final merged options
-            ProgramOptions = merged;
-            return merged;
+            ProgramOptions = mergedOptions;
+            return mergedOptions;
         }
 
-        private static FlexibleOptions LoadWebConfigurationFile (string s3Path, bool thrownOnError)
+        private static FlexibleOptions LoadExtenalConfigurationFile (string filePath, bool thrownOnError)
+        {
+            if (filePath.StartsWith ("http", StringComparison.OrdinalIgnoreCase))
+            {
+                return LoadWebConfigurationFile (filePath, thrownOnError);
+            }
+            else
+            {
+                return LoadFileSystemConfigurationFile (filePath, thrownOnError);
+            }           
+        }
+
+        private static FlexibleOptions LoadWebConfigurationFile (string filePath, bool thrownOnError)
         {
             var options = new FlexibleOptions ();
             using (WebClient client = new WebClient ())
             {
                 try
                 {
-                    var json = Newtonsoft.Json.Linq.JObject.Parse (client.DownloadString (s3Path));
+                    var json = Newtonsoft.Json.Linq.JObject.Parse (client.DownloadString (filePath));
+                    foreach (var i in json)
+                    {
+                        options.Set (i.Key, i.Value.ToString (Newtonsoft.Json.Formatting.None));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (thrownOnError)
+                        throw;
+                    LogManager.GetCurrentClassLogger ().Error (ex);
+                }
+            }
+            return options;
+        }
+
+        private static FlexibleOptions LoadFileSystemConfigurationFile (string filePath, bool thrownOnError)
+        {
+            var options = new FlexibleOptions ();
+            using (WebClient client = new WebClient ())
+            {
+                try
+                {
+                    string text;
+                    using (var file = new System.IO.StreamReader (filePath, Encoding.GetEncoding("IDO-8859-1"), true))
+                    {
+                        text = file.ReadToEnd ();
+                    }
+                    var json = Newtonsoft.Json.Linq.JObject.Parse (text);
                     foreach (var i in json)
                     {
                         options.Set (i.Key, i.Value.ToString (Newtonsoft.Json.Formatting.None));

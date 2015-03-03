@@ -5,6 +5,7 @@
 *.suo
 *.user
 *.sln.docstates
+*.ignore.*
 
 # Build results
 [Dd]ebug/
