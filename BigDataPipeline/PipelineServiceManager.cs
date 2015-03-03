@@ -165,19 +165,24 @@ namespace BigDataPipeline
                 service.Initialize (pluginDir, workDir, opt);
 
             // initialize web interface (self host)
-            string siteRootPath = null;
             if (enableWebInterface)
             {
+                Task.Run (() => InitializeWebInterface ());
+            }
+        }
+ 
+        private void InitializeWebInterface ()
+        {
+            // initialize web interface (self host)
+            string siteRootPath = null;
 #if DEBUG
                     // change root path to allow dinamic update of the page content
                     siteRootPath = System.IO.Path.Combine (AppDomain.CurrentDomain.BaseDirectory, @"site").Replace (@"BigDataPipeline\bin\Debug", "BigDataPipeline.Web");
 #endif
-
-                BigDataPipeline.Web.WebServer.Start (SimpleHelpers.ConfigManager.Get<int> ("webInterfacePort", 8080), siteRootPath, SimpleHelpers.ConfigManager.Get ("webVirtualDirectoryPath", "/bigdatapipeline"), SimpleHelpers.ConfigManager.Get ("WebOpenFirewallExceptions", false));
-                if (Environment.UserInteractive && SimpleHelpers.ConfigManager.Get<bool> ("webInterfaceDisplayOnBrowserOnStart", false))
-                {
-                    DisplayPageOnBrowser ();
-                }
+            BigDataPipeline.Web.WebServer.Start (SimpleHelpers.ConfigManager.Get<int> ("webInterfacePort", 8080), siteRootPath, SimpleHelpers.ConfigManager.Get ("webVirtualDirectoryPath", "/bigdatapipeline"), SimpleHelpers.ConfigManager.Get ("WebOpenFirewallExceptions", false));
+            if (Environment.UserInteractive && SimpleHelpers.ConfigManager.Get<bool> ("webInterfaceDisplayOnBrowserOnStart", false))
+            {
+                DisplayPageOnBrowser ();
             }
         }
 

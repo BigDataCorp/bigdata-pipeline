@@ -72,16 +72,15 @@ namespace BigDataPipeline.Web
             _logger.Debug ("[start] Starting web server endpoint...");
             // lets try to start server
             // in case of beign unable to bind to the address, lets wait and try again
-            var retry = 0;
-            do
+            int maxTryCount = 8;
+            int retry = 0;
+            while (retry++ < maxTryCount && !TryToStart (portNumber, siteRootPath, virtualDirectoryPath, openFirewallExceptions))
             {
-                if (TryToStart (portNumber, siteRootPath, virtualDirectoryPath, openFirewallExceptions))
-                    return;
                 System.Threading.Thread.Sleep (1000 << retry);
-                NLog.LogManager.GetCurrentClassLogger ().Warn ("Try count: " + retry);
+                NLog.LogManager.GetCurrentClassLogger ().Warn ("WebServer initialization try count {0}/{1}", retry, maxTryCount);
             }
-            while (retry++ < 8);
             _logger.Debug ("[done] Starting web server endpoint...");
+            _logger.Info ("WebServer listening to " + BigDataPipeline.Web.WebServer.Address);
         }
 
         public static bool TryToStart (int portNumber = 80, string siteRootPath = null, string virtualDirectoryPath = "/pipeline", bool openFirewallExceptions = false)

@@ -48,22 +48,27 @@ function select2_initSelectionMulti(element, callback, data) {
 }
 
 function _select2_internalSearch(data, term, mode, limit) {
+    var i, l, n, c, r = [], j = 0, equals;
+    // sanity checks
     limit = limit || 2147483647;
     if (!data || !data.length) { return []; }
+    // prepare search term
     if (!term) { return data.length <= limit ? data : data.slice(0, limit); }
     term = select2_prepareSearchTerm(term);
-    data = select2_prepareData(data);
-
-    var i, l, n, c, r = [], j = 0, equals;
+    
+    // prepare comparison method
     if (mode === 'equals') {
         equals = function (x, y) { return select2_prepareSearchTerm(x) === y; };
     } else {
         equals = function (x, y) { return select2_prepareSearchTerm(x).indexOf(y) !== -1; };
     }
 
+    // run comparison
     for (i = 0, l = data.length; i < l; ++i) {
         n = data[i];
-        if (n.children) {
+        if (typeof n === 'string') {
+            if (equals(n, term)) { r[j++] = { id: n, text: n }; }
+        } else if (n.children) {
             c = { id: n.id, text: n.text, disabled: n.disabled };
             c.children = _select2_internalSearch(n.children, term, limit);
             r[j++] = c;
@@ -76,7 +81,7 @@ function _select2_internalSearch(data, term, mode, limit) {
 }
 
 function select2_prepareQuery(options, rawData) {
-    var filteredData = options.context, pageSize = 40,
+    var filteredData = options.context, pageSize = options.pageSize || 40,
         startIndex = (options.page - 1) * pageSize;
 
     if (!filteredData) {
@@ -152,42 +157,92 @@ function select2_prepareSearchTerm(str) {
  * advanced usage example: 
  * <input type="hidden" class="width-full" ng-select2-bind select2-value="filters.report" select2-query="dataSources.getReports()" allowClear multiple placeholder="Selecione um tipo de relatório" />
  * 
- * @param {function} select2-value bind the id of the select2 value
+ * @param {(string|string[])} select2-value - bind the scope property with select2 values. It will use the id field of select2 data structure, example: { id: '', text: '' }.
+ * @param {function} select2-query - function that will return select2 possible values. It can return an array or a jQuery/Angular deferred/promise with the result array [or an object like { data: [] }].
+ * @param {bool=} multiple - if multiple values can be selected or only a single one
+ * @param {bool=} disable-validation - if a programatic value initialization should be checked agains the possible values returned by selec2-query.
+ * @param {string=} placeholder - the text to be displayed inside an empty select2.
+ * @param {bool=} allow-clear - if the user can clear the select2 selection. 
+ * 
  * 
  *************************************/
 function ngSelect2BindDirective($q, $timeout) {
+    function valuesAreEqual(v1, v2) {
+        // note: select2 values could be string or array
+        if (!v1 || !v2) { return v1 === v2; }
+        if (v1.length !== v2.length) { return false; }
+        // if string, compare as string
+        if (typeof v1 === 'string') { return v1 === v2; }        
+        // compare as array
+        for (var i = 0, len = v1.length; i < len; i++) {
+            if (v1[i] !== v2[i]) { return false; }
+        }
+        return true;
+    }
+
+    function checkEnabledAttribute(attr, defaultValue) {
+        if (defaultValue && (!attr && attr !== '')) { return defaultValue; }
+        return !((!attr && attr !== '') || attr === 'false');
+    }
+
     return {
         restrict: 'A', //E = element, A = attribute, C = class, M = comment    
         // responsible for registering DOM listeners as well as updating the DOM
         link: function (scope, element, attrs, controller) {
             //$(element).attrs("type", "hidden");
+            // prepare possible attributes
+            attrs.multiple = checkEnabledAttribute(attrs.multiple);
+            attrs.allowClear = checkEnabledAttribute(attrs.allowClear);
+            attrs.disableValidation = checkEnabledAttribute(attrs.disableValidation);
 
-            $(element).on("change", function (e) {
-                // use a timeout method to safelly signal angularjs to refres its context
+            // bind onChange event and create select2 component
+            element.on("change", function (e) {
+                // use a timeout method to safelly signal angularjs to refresh its context
                 $timeout(function () {
-                    scope.select2Value = e.val;
+                    // update only if values differs
+                    if (!valuesAreEqual(scope.select2Value, e.val)) {
+                        scope.select2Value = e.val;
+                    }
                 });
             }).select2({
                 placeholder: attrs.placeholder,
-                allowClear: !!attrs.allowclear || attrs.allowclear === "",
+                allowClear: attrs.allowClear,
                 initSelection: function (element, callback) {
-                    $q.when(scope.select2Query()).then(function (r) {
-                        r = (r && r.data) ? r.data : (r && r.length) ? r : [];
-                        var method = !!attrs.multiple || attrs.multiple === "" ? select2_initSelectionMulti : select2_initSelectionSimple;
-                        method(element, callback, r);
-                    });
+                    var method = attrs.multiple ? select2_initSelectionMulti : select2_initSelectionSimple;
+                    // simply put the new value or get possible value before initializing values
+                    if (attrs.disableValidation) {
+                        method(element, callback);
+                    } else {
+                        $q.when(scope.select2Query()).then(function (r) {
+                            method(element, callback, (r && r.data) ? r.data : (r && r.length) ? r : []);
+                        });
+                    }
                 },
-                multiple: !!attrs.multiple || attrs.multiple === "",
+                multiple: attrs.multiple,
                 query: function (options) {
-                    // use jquery promises
-                    $q.when(scope.select2Query(options.term)).then(function (r) {
-                        select2_prepareQuery(options, (r && r.data) ? r.data : (r && r.length) ? r : []);
-                    });
+                    // select2Query can return the data (array or promise) or
+                    // return nothing and implement the select2 query interface
+                    var promise = scope.select2Query({ options: options });
+                    // use jquery promises or array of data
+                    if (promise) {
+                        $q.when(promise).then(function (r) {
+                            select2_prepareQuery(options, (r && r.data) ? r.data : (r && r.length) ? r : []);
+                        });
+                    }
                 }
             });
 
+            // set intial value
+            if (scope.select2Value) {
+                element.select2('val', scope.select2Value, true);
+            }
+
+            // set binding between field and select2 component
             scope.$watch('select2Value', function (newValue, oldValue) {
-                $(element).select2('val', scope.select2Value);
+                if (newValue !== oldValue && !valuesAreEqual(newValue, element.select2('val'))) {
+                    // update select2 values and also trigger the change event to make sure we got the correct selected values
+                    $(element).select2('val', newValue, true);
+                }
             });
         },
         // if a new scope should be created 

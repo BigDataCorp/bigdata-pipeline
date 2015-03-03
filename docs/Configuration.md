@@ -85,7 +85,7 @@ If not configured or empty, the first loaded accessControl module will be used.
 ### webInterfaceEnabled
 `webInterfaceEnabled=<boolean>`
 
-Default value: `empty`
+Default value: `true`
 
 If enabled, pileline will start to listen to the specified address and port serve a web interface and web api.
 

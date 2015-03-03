@@ -27,7 +27,7 @@
         Flatdoc.run({
             fetcher: Flatdoc.file([
                 './docs/Menu.md',
-                'https://rawgit.com/BigDataCorp/bigdata-pipeline/master/README.md'
+                './README.md'
             ])
         });
     </script>
@@ -44,10 +44,23 @@
 
     <script>
         function stringEndsWith(str, suffix) {
-            if (!str || !suffix) {
-                return false;
-            }
+            if (!str || !suffix) { return false; }
             return str.indexOf(suffix, str.length - suffix.length) !== -1;
+        }
+
+        function getViewName(str) {
+            if (!str) { return ''; }
+            var i = str.lastIndexOf('/');
+            if (i < 0) { i = 0; }
+            return str.substr(i, str.lastIndexOf('.') || str.length);
+        }
+
+        function setLocationHash(tag) {
+            if (history.pushState) {
+                history.pushState(null, null, '#' + tag);
+            } else {
+                location.hash = '#' + tag;
+            }
         }
 
         $("[role='flatdoc']").on('click', 'a', function (e) {
@@ -55,8 +68,9 @@
             if (stringEndsWith(txt, '.md')) {
                 e.preventDefault();
                 Flatdoc.run({
-                    fetcher: Flatdoc.file([ './docs/Menu.md',txt])
+                    fetcher: Flatdoc.file(['./docs/Menu.md', txt])
                 });
+                setLocationHash(getViewName(txt));
             }
         });
     </script>

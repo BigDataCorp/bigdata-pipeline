@@ -216,10 +216,10 @@
                 onRowSelection: function (data, rowId) {
                     $('#job_textarea').val(JSON.stringify(data, null, ' \t '));
                 },
-                columns: [
-                        { field: 'Id', header: 'Id', class: 'text-center' },
+                columns: [                        
                         { header: 'Name', class: 'text-center' },
                         { header: 'Domain', class: 'text-center' },
+                        { field: 'Id', header: 'Id', class: 'text-center' },
                         { header: 'Description', class: 'text-center' },
                         { header: 'Enabled', class: 'text-center' },
                         { header: 'Jobs', class: 'text-center' },
