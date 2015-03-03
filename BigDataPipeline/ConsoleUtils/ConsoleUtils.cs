@@ -35,6 +35,9 @@ namespace BigDataPipeline
             System.Net.ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
         }
 
+        static string _logFileName;
+        static string _logLevel;
+
         /// <summary>
         /// Log initialization.
         /// </summary>
@@ -45,6 +48,15 @@ namespace BigDataPipeline
                 logFileName = SimpleHelpers.ConfigManager.Get<string> ("logFilename", "${basedir}/log/" + typeof (Program).Namespace + ".log");
             if (logLevel == null)
                 logLevel = SimpleHelpers.ConfigManager.Get ("logLevel", "Info");
+
+            // check if log was initialized with same options
+            if (_logFileName == logFileName && _logLevel == logLevel) 
+                return;
+
+            // save current log configuration
+            _logFileName = logFileName;
+            _logLevel = logLevel;
+
             // try to parse loglevel
             LogLevel currentLogLevel;
             try { currentLogLevel = LogLevel.FromString (logLevel); }
@@ -214,11 +226,7 @@ namespace BigDataPipeline
             mergedOptions = FlexibleOptions.Merge (externalLoadedOptions, mergedOptions);
 
             // reinitialize log options if different from local configuration file
-            if (externalLoadedOptions.HasOption ("logLevel") || argsOptions.HasOption ("logLevel") ||
-                externalLoadedOptions.HasOption ("logFilename") || argsOptions.HasOption ("logFilename"))
-            {
-                InitializeLog (mergedOptions.Get ("logFilename"), mergedOptions.Get ("logLevel", "Info"));
-            }
+            InitializeLog (mergedOptions.Get ("logFilename"), mergedOptions.Get ("logLevel", "Info"));
 
             // return final merged options
             ProgramOptions = mergedOptions;

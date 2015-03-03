@@ -196,8 +196,4 @@ Default value: `false`
 If enabled, will try to open the browser with the web interface start page.
 
 
-### webInterfacePort
-`webInterfacePort=<integer>`
-
-Default value: `8080`
 
