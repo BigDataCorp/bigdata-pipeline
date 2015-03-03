@@ -1,0 +1,80 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.31101.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDataPipeline", "BigDataPipeline\BigDataPipeline.csproj", "{AA53D02D-CB6B-4461-B007-37BF7477E878}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDataPipeline.Core", "BigDataPipeline.Core\BigDataPipeline.Core.csproj", "{AD11E361-4624-4D56-8219-247A7378085A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDataPipeline.Interfaces", "BigDataPipeline.Interfaces\BigDataPipeline.Interfaces.csproj", "{256C0A2D-F613-4023-918E-831EFE287532}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDataPipeline.Web", "BigDataPipeline.Web\BigDataPipeline.Web.csproj", "{EB87F708-658D-454D-989E-626B5EE051C7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestCaseModule", "TestCaseModule\TestCaseModule.csproj", "{C18D9FE1-A23B-4493-AE5C-BFEC9EB22E14}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestNancyModule", "TestNancyModule\TestNancyModule.csproj", "{EC52F8B9-1644-49AE-B7A3-842E28C65EB2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDataPipeline.Core.Interfaces", "BigDataPipeline.Core.Interfaces\BigDataPipeline.Core.Interfaces.csproj", "{539FA085-E5AE-4D00-8738-391EC9748C77}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDataPipeline.SqliteStorageModule", "BigDataPipeline.SqliteStorageModule\BigDataPipeline.SqliteStorageModule.csproj", "{39EC8707-0261-4A54-9136-97454E5B4B32}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDataPipeline.MongoDbStorage", "BigDataPipeline.MongoDbStorage\BigDataPipeline.MongoDbStorage.csproj", "{4D449D9B-6E4F-4480-BD64-1BA26EF6917D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BigDataPipeline.DummyAccessControlModule", "BigDataPipeline.DummyAccessControlModule\BigDataPipeline.DummyAccessControlModule.csproj", "{35A73B37-760C-482C-815F-3478F843EAE8}"
+EndProject
+Global
+	GlobalSection(SubversionScc) = preSolution
+		Svn-Managed = True
+		Manager = AnkhSVN - Subversion Support for Visual Studio
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AA53D02D-CB6B-4461-B007-37BF7477E878}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AA53D02D-CB6B-4461-B007-37BF7477E878}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AA53D02D-CB6B-4461-B007-37BF7477E878}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AA53D02D-CB6B-4461-B007-37BF7477E878}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AD11E361-4624-4D56-8219-247A7378085A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AD11E361-4624-4D56-8219-247A7378085A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AD11E361-4624-4D56-8219-247A7378085A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AD11E361-4624-4D56-8219-247A7378085A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{256C0A2D-F613-4023-918E-831EFE287532}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{256C0A2D-F613-4023-918E-831EFE287532}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{256C0A2D-F613-4023-918E-831EFE287532}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{256C0A2D-F613-4023-918E-831EFE287532}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EB87F708-658D-454D-989E-626B5EE051C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB87F708-658D-454D-989E-626B5EE051C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB87F708-658D-454D-989E-626B5EE051C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB87F708-658D-454D-989E-626B5EE051C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C18D9FE1-A23B-4493-AE5C-BFEC9EB22E14}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C18D9FE1-A23B-4493-AE5C-BFEC9EB22E14}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C18D9FE1-A23B-4493-AE5C-BFEC9EB22E14}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C18D9FE1-A23B-4493-AE5C-BFEC9EB22E14}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EC52F8B9-1644-49AE-B7A3-842E28C65EB2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC52F8B9-1644-49AE-B7A3-842E28C65EB2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC52F8B9-1644-49AE-B7A3-842E28C65EB2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC52F8B9-1644-49AE-B7A3-842E28C65EB2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{539FA085-E5AE-4D00-8738-391EC9748C77}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{539FA085-E5AE-4D00-8738-391EC9748C77}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{539FA085-E5AE-4D00-8738-391EC9748C77}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{539FA085-E5AE-4D00-8738-391EC9748C77}.Release|Any CPU.Build.0 = Release|Any CPU
+		{39EC8707-0261-4A54-9136-97454E5B4B32}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{39EC8707-0261-4A54-9136-97454E5B4B32}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{39EC8707-0261-4A54-9136-97454E5B4B32}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{39EC8707-0261-4A54-9136-97454E5B4B32}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4D449D9B-6E4F-4480-BD64-1BA26EF6917D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4D449D9B-6E4F-4480-BD64-1BA26EF6917D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4D449D9B-6E4F-4480-BD64-1BA26EF6917D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4D449D9B-6E4F-4480-BD64-1BA26EF6917D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{35A73B37-760C-482C-815F-3478F843EAE8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{35A73B37-760C-482C-815F-3478F843EAE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{35A73B37-760C-482C-815F-3478F843EAE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{35A73B37-760C-482C-815F-3478F843EAE8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

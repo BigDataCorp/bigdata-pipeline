@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width">
+    <title>Documentation</title>
+
+    <!-- Meta -->
+    <meta content="Project Name" property="og:title">
+    <meta content="Project description" name="description">
+
+    <!-- Flatdoc -->
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <!--[if lt IE 9]>
+    <script src='http://rstacruz.github.io/flatdoc/v/0.9.0/legacy.js'></script>
+    <![endif]-->
+    <script src='http://rstacruz.github.io/flatdoc/v/0.9.0/flatdoc.js'></script>
+
+    <!-- Flatdoc theme -->
+    <link href='http://rstacruz.github.io/flatdoc/v/0.9.0/theme-white/style.css' rel='stylesheet'>
+    <script src='http://rstacruz.github.io/flatdoc/v/0.9.0/theme-white/script.js'></script>
+
+    <!-- Initializer -->
+    <script>
+        Flatdoc.run({
+            fetcher: Flatdoc.file([
+                './docs/Menu.md',
+                'https://rawgit.com/BigDataCorp/bigdata-pipeline/master/README.md'
+            ])
+        });
+    </script>
+</head>
+
+<body role='flatdoc' class='no-literate big-h3'>
+
+    <div class='content-root'>
+        <div class='menubar'>
+            <div class='menu section' role='flatdoc-menu'></div>
+        </div>
+        <div role='flatdoc-content' class='content'></div>
+    </div>
+
+    <script>
+        function stringEndsWith(str, suffix) {
+            if (!str || !suffix) {
+                return false;
+            }
+            return str.indexOf(suffix, str.length - suffix.length) !== -1;
+        }
+
+        $("[role='flatdoc']").on('click', 'a', function (e) {
+            var txt = $(this).attr('href');
+            if (stringEndsWith(txt, '.md')) {
+                e.preventDefault();
+                Flatdoc.run({
+                    fetcher: Flatdoc.file([ './docs/Menu.md',txt])
+                });
+            }
+        });
+    </script>
+
+</body>
+
+</html>

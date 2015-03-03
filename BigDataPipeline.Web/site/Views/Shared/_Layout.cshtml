@@ -1,0 +1,153 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+    <head>
+        <meta charset="utf-8" />        
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+
+        <title>Big Data Pipeline Manager</title>
+
+        <link rel="shortcut icon" href="@Url.Content("~/images/favicon.ico")" type="image/x-icon" />
+        
+        @Html.Raw(Bundle.Css ()
+                .Add("~/styles/bootstrap.min.css")
+                .Add("~/styles/font-awesome.min.css")
+                .Add("~/styles/colorbox.css")
+                .Add("~/styles/jquery-gentleSelect.css")
+                .Add("~/styles/pipeline-color-pallete.css")
+                .Add ("~/styles/select2/select2.css")
+                .Add ("~/styles/select2/select2-bootstrap.css")
+                         
+                .Add("~/styles/ui-grid-unstable.min.css")
+                .WithOutputBaseHref(Url.Content("~/"))
+                .Render("~/styles/bundle.css"));
+        
+        @*<link href="@Url.Content("~/styles/bootstrap-theme.min.css")" rel="stylesheet" type="text/css" />*@        
+
+        @*<!-- HTML5 shim, for IE6-8 support of HTML5 elements -->*@
+        <!--[if lt IE 9]>
+            <script src="@Url.Content("~/scripts/html5shiv.js")"></script>
+            <script src="@Url.Content("~/scripts/respond.js")"></script>
+            <script src="@Url.Content("~/scripts/json3.min.js")"></script>
+        <![endif]-->
+    
+        
+    </head>
+<body class="bg_bootstrap_purple">
+    <div class="container-fluid">
+        <div class="container ft_white">
+            <h1>BigData Pipeline Manager</h1>
+
+            <div class="separator-8"></div>
+
+            <ol class="breadcrumb" id="globalNavigation"></ol>
+
+            <div class="separator-2"></div>
+        </div>
+    </div>
+
+    <div class="container-fluid bg_white">
+        <div class="separator-16"></div>
+
+        <div class="container">
+            @{ RenderBody (); }
+        </div>
+
+        <div class="separator-32"></div>
+    </div>
+
+    <footer class="container-fluid">
+        <div class="separator-16"></div>
+        <div class="container ft_white">
+            <div class="row ft_white">
+                <div class="col-12">
+                    <div class="pull-right">2014 - @DateTime.Today.Year - BigDataCorp</div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    @***********************************************************
+            SCRIPTS SECTION
+            Placed at the end of the document so the pages load faster
+        ************************************************************@
+    @Html.Raw(Bundle.JavaScript ()
+                .Add("~/scripts/jquery-1.11.1.min.js")
+                .Add("~/scripts/bootstrap.min.js")
+                .Add("~/scripts/angular.min.js")
+                .Add("~/scripts/angular-animate.min.js")
+                .Add("~/scripts/angular-touch.min.js")
+                
+                .Add("~/scripts/jquery.colorbox-min.js")
+                .Add("~/scripts/jquery.cookie-1.4.1.min.js")
+                .Add("~/scripts/papaparse.min.js")
+                .Add("~/scripts/moment-with-locales.min.js")
+                .Add("~/scripts/jquery-gentleSelect-min.js")
+                .Add("~/scripts/jquery-cron-min.js")
+                .Add("~/scripts/lazy.min.js")
+                .Add("~/scripts/simpleDialog.js")
+                .Add("~/scripts/simpleTable.js")
+                
+                .Add ("~/scripts/select2/select2.min.js")
+                .Add ("~/scripts/select2/select2_locale_pt-BR.js")
+                .Add ("~/scripts/select2/select2_helpers.js")
+                
+                .Add("~/scripts/ui-grid-unstable.min.js")
+                .WithOutputBaseHref(Url.Content("~/"))
+                .Render("~/scripts/bundle.js"));
+    
+
+    <script type="text/javascript">
+    @**** local vars ****@
+        var siteConfig = {
+            rootUrl: '@Url.Content("~/")'
+        };
+
+        @**** set default error handling for unobserved exceptions ****@
+        window.onerror = function (msg, url, lno) {
+            if (!lno || !msg) {
+                return;
+            }
+            var alertmsg = "Ops. Ocorreu um erro inesperado.";
+            alertmsg += "\nDesculpe-nos pela incoveniência.\n";
+            alertmsg += "\nPor favor, experimente recarregar a página (F5).\n";
+            alertmsg += "\nCaso o problema persista, contacte o suporte técnico.";
+            alert(alertmsg);
+            return true;
+        };
+
+        siteConfig.initializeBreadcrumb = function () {
+            var list = '', base, i, pos;
+            pos = window.location.href.split('://')[1].split('#')[0].split('?')[0];
+            if (siteConfig.rootUrl && siteConfig.rootUrl.length > 1) {
+                pos = pos.replace(siteConfig.rootUrl, siteConfig.rootUrl + "**separator**").split("**separator**");
+                base = '//' + pos[0];
+                pos = (pos[1] || '').split('/');
+            } else {
+                pos = pos.split('/');
+                base = '//' + pos.shift();
+            }
+
+            list += '<li class="text-uppercase"><a href="' + base + '">Home</a></li>';
+            for (i = 0; i < pos.length - 1; i++) {
+                base += '/' + pos[i];
+                list += '<li class="text-uppercase"><a href="' + base + '">' + pos[i] + '</a></li>';
+            }
+            if (pos.length > 0) {
+                list += '<li class="active text-uppercase">' + pos[pos.length - 1] + '</li>';
+            }
+            $('#globalNavigation').html(list);
+        };
+
+        $(document).ready(function () {
+            siteConfig.initializeBreadcrumb();
+        });
+    </script>
+
+    @{ RenderSection ("scripts", false); }
+
+</body>
+
+</html>

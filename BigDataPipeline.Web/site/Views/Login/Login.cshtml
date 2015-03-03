@@ -1,0 +1,93 @@
+﻿@{
+    Layout = Url.Content("Shared/_Layout.cshtml");
+}
+
+<div class="row">
+    <div class="col-sm-4 col-sm-offset-8">
+        <form class="form-horizontal" role="form" method="post" id="loginForm">
+            <div class="form-group">
+                <input id="inputLogin" class="form-control" placeholder="login" required />
+            </div>
+            <div class="form-group">
+                <input id="inputPass" type="password" class="form-control" placeholder="password" required />
+            </div>
+            <div class="form-group">
+                <button id="btnLogin" type="submit" class="btn btn-primary col-sm-3 pull-right">Login</button>
+            </div>
+            <div id="formMessageArea"></div>
+        </form>
+    </div>
+</div>
+
+
+@section scripts {
+    <script type="text/javascript">
+        var _page = {};
+
+        _page.clearMessage =function () {
+            $('#formMessageArea').hide();
+        };
+        _page.showMessage = function (msg) {
+            $('#formMessageArea').html(msg)
+                .toggleClass('alert alert-danger', true)                
+                .show();
+        };
+
+        _page.executeQuery = function (operation, data, onsuccess, onerror) {
+            var p = {
+                op: operation,
+                data: data
+            };
+            simpleDialog.loading();
+            $.ajax({
+                url: "@Url.Content("~/login")",
+                cache: false,
+                async: true,
+                type: 'POST',
+                dataType: "json",
+                data: JSON.stringify(p),
+                contentType: 'application/json; charset=utf-8',
+                success: function (data) {
+                    simpleDialog.close();
+                    if (data && data.status) {
+                        simpleDialog.close();
+                        if (onsuccess) { onsuccess(data.result); }
+                    } else {
+                        if (data && data.message) {
+                            _page.showMessage(data.message);
+                        } else {
+                            simpleDialog.error();
+                        }
+                        if (onerror) { onerror(); }
+                    }
+                },
+                error: function () {
+                    simpleDialog.error();
+                    if (onerror) { onerror(); }
+                }
+            });
+        };
+
+        // initialization
+        $(document).ready(function () {
+            $('#loginForm').submit(function (e) {
+                // cancels the form submission
+                e.preventDefault();
+
+                _page.clearMessage();
+
+                // Reading arguments from form
+                var loginModel = {
+                    'Username': $('#inputLogin').val(), 
+                    'Password': $('#inputPass').val()
+                };
+
+                _page.executeQuery("login", loginModel, function (r) {
+                    window.location = '@Url.Content("~/")';
+                });
+
+                return false;
+            });
+        });
+    </script>
+}

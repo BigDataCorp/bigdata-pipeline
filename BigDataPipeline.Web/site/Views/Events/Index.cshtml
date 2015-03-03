@@ -1,0 +1,117 @@
+﻿@{
+    Layout = Url.Content("Shared/_Layout.cshtml");
+}
+
+
+<div ng-app="app" ng-controller="eventsController" id="eventsController" ui-i18n="en">
+    <h4>Events</h4>
+
+    <div class="separator-8"></div>
+
+    <div id="status" class="alert" ng-hide="status" ng-class="{'alert-success': status, 'alert-danger': !status}">{{ message }}</div>
+
+    <span id="dataTableEvents-exporter-link">&nbsp;</span>
+    <div id="dataTableEvents" ui-grid="dataTableEvents" ui-grid-selection ui-grid-exporter external-scopes="gridParentScope" style="height:500px;"></div>
+
+</div>
+
+
+@section scripts {
+
+    <script type="text/javascript">        
+        var ng_app = angular.module('app', ['ui.grid', 'ui.grid.selection', 'ui.grid.exporter']);
+        ng_app.directive('ngSelect2Bind', ['$q', ngSelect2BindDirective]);
+
+        ng_app.controller('eventsController', function ($scope, $http, $timeout) {
+            $scope.status = false;
+            $scope.message = "loading...";
+            $scope.gridParentScope = $scope;
+            
+            $scope.dataTableEvents = {
+                enableGridMenu: true,
+                exporterMenuCsv: true,
+                exporterMenuPdf: false,
+                rowHeight: 36,
+                enableSelectionBatchEvent: false,
+                exporterCsvLinkElement: angular.element(document.querySelectorAll("#dataTableEvents-exporter-link")),
+                onRegisterApi: function (gridApi) {
+                    $scope.dataTableEventsApi = gridApi;
+
+                    gridApi.selection.on.rowSelectionChanged($scope, function (row) {
+                        var msg = 'row selected ' + row.isSelected + row.entity.Message;
+                        console.log(row);
+                    });
+
+                    //gridApi.selection.on.rowSelectionChangedBatch($scope, function (rows) {
+                    //    var msg = 'rows changed ' + rows.length;
+                    //    console.log(msg);
+                    //});
+                },
+                data: []
+            };
+
+            var actionsTemplate = '<div><button type="button" role="button" ng-click="getExternalScopes().selectItem(row, \'play\')" class="btn btn-default btn-small margin-horizontal-2"><i class="fa fa-play"></i></button>' +
+                           '<button type="button" role="button" ng-click="getExternalScopes().selectItem(row, \'remove\')" class="btn btn-default btn-small margin-horizontal-2"><i class="fa fa-trash-o text-danger"></i></button></div>';
+
+            $scope.dataTableEvents.columnDefs = [
+                { name: 'Date', field: "Date",cellFilter: "date:'yyyy-MM-dd HH:mm:ss.sss'", width:'18%', resizable: true },
+                { name: 'Pipeline', field:"Pipeline", width:'14%', resizable: true },
+                { name: 'Plugin', field:"Plugin", width:'20%', resizable: true },
+                { name: 'Type', field:"Type", width:'8%', resizable: true },
+                { name: 'Message', field:"Message", width:'40%', resizable: true },
+                { name: 'actions', width:'40%', resizable: true, enableColumnMenu: false, cellTemplate: actionsTemplate }
+            ];
+
+            $scope.hideMessage = function () {
+                $('#status').hide();
+            };
+
+            $scope.showMessage = function (msg, evtType) {
+                $('#status').html(msg)
+                    .toggleClass('alert-success', evtType === "success")
+                    .toggleClass('alert-danger', evtType === "error")
+                    .toggleClass('alert-warning', evtType === "warning")
+                    .toggleClass('alert-info', (evtType || 'info') === "info")
+                    .show();
+            };
+
+            $scope.refresh = function () {
+                simpleDialog.loading();
+
+                $http.post("@Url.Content("~/events/query")", { op: "load", data: {} })
+                .success(function (data, status, headers, config) {
+                    $scope.status = data.status;
+                    $scope.message = data.message || data.status ? "Success" : "Internet connection error";
+                    $scope.dataTableEvents.data = data.result;
+                    simpleDialog.close();
+                })
+                .error(function (data, status, headers, config) {
+                    $scope.showMessage('Internet connection error', 'error');
+                    simpleDialog.error('Internet connection error');
+                });
+
+                // $timeout(function () { })                
+            };
+
+            $scope.selectItem = function (row, action) {
+                if (!window.console) return;
+                if (action === 'remove')
+                    console.error(row.entity);
+                else if (action === 'play')
+                    console.info(row.entity);
+                else
+                    console.log(row.entity);
+
+                console.log($scope.dataTableEventsApi.selection.getSelectedRows());
+            };
+        });
+
+
+        // initialization
+        $(document).ready(function () {
+            angular.element('#eventsController').scope().refresh();
+
+            
+        });
+    </script>
+}

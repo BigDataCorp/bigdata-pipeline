@@ -1,0 +1,32 @@
+﻿@{
+    Layout = Url.Content("Shared/_Layout.cshtml");
+}
+
+
+<div ng-app="app" ng-controller="eventsController" id="eventsController" ui-i18n="en">
+    <h4>Configuration</h4>
+
+    <div class="separator-8"></div>
+
+    <div id="status" class="alert alert-danger">Not Implemented!</div>
+</div>
+
+
+@section scripts {
+
+    <script type="text/javascript">        
+        var ng_app = angular.module('app', ['ui.grid', 'ui.grid.selection', 'ui.grid.exporter']);
+        ng_app.directive('ngSelect2Bind', ['$q', ngSelect2BindDirective]);
+
+        ng_app.controller('eventsController', function ($scope, $http, $timeout) {
+            
+        });
+
+
+        // initialization
+        $(document).ready(function () {
+
+            
+        });
+    </script>
+}

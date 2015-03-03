@@ -1,0 +1,243 @@
+﻿@{
+    Layout = Url.Content ("Shared/_Layout.cshtml");
+}
+
+<div ng-app="app" ng-controller="mainController" id="mainController" ui-i18n="en">
+    <h4>Jobs</h4>
+
+    <div class="separator-8"></div>
+
+    <div id="status" class="alert" ng-hide="status" ng-class="{'alert-success': status, 'alert-danger': !status}">{{ message }}</div>
+
+    <div class="separator-8" ng-hide="status"></div>
+
+    <div class="row">
+        <div class="col-sm-12">
+            <button class="btn btn-default col-sm-1 margin-right-16" role="button" ng-click="refresh()">Refresh</button>
+        </div>
+    </div>    
+
+    <div class="separator-8"></div>
+
+    <div id="dataTable"></div>
+
+    <div class="separator-8"></div>
+
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="form-group">
+                <textarea class="form-control" rows="22" id="job_textarea"></textarea>
+            </div>
+            <div class="form-group">
+                <button class="btn btn-default col-sm-1 pull-right" role="button" id="btnSave">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@section scripts {
+    <script type="text/javascript">
+        var _page = {
+            //hideMessage: function () {
+            //    $('#status').hide();
+            //},
+            //showMessage: function (msg, evtType) {
+            //    $('#status').html(msg)
+            //        .toggleClass('alert', true)
+            //        .toggleClass('alert-success', evtType === "success")
+            //        .toggleClass('alert-danger', evtType === "error")
+            //        .toggleClass('alert-warning', evtType === "warning")
+            //        .toggleClass('alert-info', evtType || 'info' === "info")
+            //        .show();
+            //},
+            executeQuery: function (operation, data, onsuccess, onerror) {
+                var p = {
+                    op: operation,
+                    data: data
+                };
+                simpleDialog.loading();
+                $.ajax({
+                    url: "@Url.Content("~/jobs/query")",
+                    cache: false,
+                    async: true,
+                    type: 'POST',
+                    dataType: "json",
+                    data: JSON.stringify(p),
+                    contentType: 'application/json; charset=utf-8',
+                    success: function (data) {
+                        if (data && data.status) {
+                            simpleDialog.close();
+                            if (onsuccess) { onsuccess(data.result); }
+                        } else {
+                            if (data && data.message) {
+                                simpleDialog.warning(data.message);
+                            } else {
+                                simpleDialog.error();
+                            }
+                            if (onerror) { onerror(); }
+                        }
+                    },
+                    error: function () {
+                        simpleDialog.error();
+                        if (onerror) { onerror(); }
+                    }
+                });
+            },
+            refresh: function () {
+                _page.executeQuery('load', null,
+                    function (data) {
+                        $('#dataTable').data('simpleTable').populateTable(data, true);
+                        //$('#status').html(JSON.stringify(data, null, ' \t ').replace(/\n/gm, '<br/>').replace(/\t/gm, '&nbsp;'));
+                    }, function () {
+                        $('#dataTable').data('simpleTable').clearTable();
+                    });
+            },
+            remove: function (jobId) {
+                simpleDialog.warning('Remove job: ' + jobId + ' ?', function () {
+                    _page.executeQuery('remove', { 'jobId': jobId.toString() },
+                        function (data) {
+                            _page.refresh();
+                            simpleDialog.success('Job removed!');
+                        });
+                });
+            },
+            save: function (job) {
+                _page.executeQuery('save', { 'job': JSON.stringify(job) },
+                    function (data) {
+                        _page.refresh();
+                        simpleDialog.success('Job saved!');
+                    });
+            },
+            play: function (jobId) {
+                simpleDialog.warning('Execute job: ' + jobId + ' ?', function () {
+                    _page.executeQuery('play', { 'jobId': jobId.toString() },
+                        function (data) {
+                            _page.refresh();
+                            simpleDialog.success('Job executing...');
+                        });
+                });
+            },
+        };
+
+        var ng_app = angular.module('app', ['ui.grid', 'ui.grid.selection']);
+        ng_app.directive('ngSelect2Bind', ['$q', ngSelect2BindDirective]);
+
+        ng_app.controller('mainController', function ($scope, $http, $timeout) {
+            $scope.status = false;
+            $scope.message = "loading..."; 
+            $scope.gridParentScope = $scope;
+
+            $scope.showMessage = function (message, isError) {
+                $scope.status = !isError;
+                $scope.message = message || "";
+            };
+
+            $scope.clearItem = function () {
+                $('#job_textarea').val('');
+            };
+
+            $scope.selectItem = function (item) {
+                $('#job_textarea').val(JSON.stringify(data, null, ' \t '));
+            };
+
+            $scope.refresh = function () {
+                $scope.showMessage("loading...");
+
+                _page.executeQuery('load', null,
+                    function (data) {
+                        $('#dataTable').data('simpleTable').populateTable(data, true);
+                        //$('#status').html(JSON.stringify(data, null, ' \t ').replace(/\n/gm, '<br/>').replace(/\t/gm, '&nbsp;'));                        
+                        $timeout(function () {
+                            $scope.showMessage();
+                            $scope.dataTableEvents.data = data;
+                        });
+                    }, function () {
+                        $timeout(function () {
+                            $scope.clearItem();
+                            $scope.showMessage("Loading failled!", true);
+                        });
+                    });
+            };
+
+            // table configuration
+            $scope.dataTableEvents = {
+                enableGridMenu: false,
+                rowHeight: 36,
+                multiSelect: false,
+                noUnselect: true,
+                enableRowSelection: true,
+                enableSelectAll: false,
+                enableRowHeaderSelection: false,
+                onRegisterApi: function (gridApi) {
+                    $scope.dataTableEventsApi = gridApi;
+                    gridApi.selection.on.rowSelectionChanged($scope, function (row) {
+                        if (row.isSelected) {
+                            $scope.selectItem(row.entity);
+                        } else {
+                            $scope.clearItem();
+                        }                        
+                    });
+                },
+                data: []
+            };
+
+            $scope.dataTableEvents.columnDefs = [
+                { name: 'Id', field: "Id", resizable: true },
+                { name: 'Name', field:"Name", resizable: true },
+                { name: 'Domain', field:"Domain", resizable: true },
+                { name: 'Description', field:"Description", resizable: true },
+                { name: 'Enabled', field:"Enabled", resizable: true },
+                { name: 'Jobs', field:"Jobs", resizable: true },
+                { name: 'Actions', displayName: '', resizable: true, enableColumnMenu: false, enableSorting: false, cellTemplate: 
+                           '<div><button type="button" role="button" ng-click="getExternalScopes().selectItem(row, \'play\')" class="btn btn-default btn-small margin-horizontal-2"><i class="fa fa-play"></i></button>' +
+                           '<button type="button" role="button" ng-click="getExternalScopes().selectItem(row, \'remove\')" class="btn btn-default btn-small margin-horizontal-2"><i class="fa fa-trash-o text-danger"></i></button></div>' 
+                }
+            ];
+        });
+
+
+        // initialization
+        $(document).ready(function () {
+            angular.element('#mainController').scope().refresh();
+            
+            $('#btnSave').click(function () {
+                var job;
+                try {
+                    job = JSON.parse($('#job_textarea').val());
+                } catch (e) {
+                    simpleDialog.error('Error parsing Job: ' + e.message);
+                    return;
+                }
+                _page.save(job);
+            });
+
+            $('#dataTable').simpleTable({
+                onRowSelection: function (data, rowId) {
+                    $('#job_textarea').val(JSON.stringify(data, null, ' \t '));
+                },
+                columns: [
+                        { field: 'Id', header: 'Id', class: 'text-center' },
+                        { header: 'Name', class: 'text-center' },
+                        { header: 'Domain', class: 'text-center' },
+                        { header: 'Description', class: 'text-center' },
+                        { header: 'Enabled', class: 'text-center' },
+                        { header: 'Jobs', class: 'text-center' },
+                        { header: '', class: 'text-center' },
+                ],
+                customDataParser: function (data) {
+                    return [
+                            data.Id,
+                            data.Name || '',
+                            data.Domain || '',
+                            data.Description || '',
+                            data.Enabled ? 'enabled' : 'disabled',
+                            !!data.Jobs ? data.Jobs.length : 0,
+                            '<button onclick="_page.play(\'' + data.Id + '\');" class="btn btn-default margin-horizontal-2" role="button"><i class="fa fa-play"></i></button>' +
+                            '<button onclick="_page.remove(\'' + data.Id + '\');" class="btn btn-default margin-horizontal-2" role="button"><i class="fa fa-trash-o text-danger"></i></button>'
+                    ];
+                }
+            });            
+        });
+    </script>
+}
