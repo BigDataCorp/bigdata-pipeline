@@ -41,8 +41,10 @@
         function getViewName(str) {
             if (!str) { return str; }
             var i = str.lastIndexOf('/') + 1;
+            var j = str.lastIndexOf('.');
             if (i < 0) { i = 0; }
-            return str.substr(i, (str.lastIndexOf('.') || str.length) - i);
+            if (j <= 0) { j = str.length;}
+            return str.substr(i, j - i);
         }
 
         function setLocationHash(tag) {
