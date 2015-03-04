@@ -44,9 +44,9 @@ namespace BigDataPipeline
         internal static void InitializeLog (string logFileName = null, string logLevel = null)
         {
             // default parameters initialization from config file
-            if (logFileName == null)
+            if (String.IsNullOrEmpty (logFileName))
                 logFileName = SimpleHelpers.ConfigManager.Get<string> ("logFilename", "${basedir}/log/" + typeof (Program).Namespace + ".log");
-            if (logLevel == null)
+            if (String.IsNullOrEmpty (logLevel))
                 logLevel = SimpleHelpers.ConfigManager.Get ("logLevel", "Info");
 
             // check if log was initialized with same options

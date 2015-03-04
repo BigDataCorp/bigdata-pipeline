@@ -55,11 +55,12 @@
 
             $scope.dataTableEvents.columnDefs = [
                 { name: 'Date', field: "Date",cellFilter: "date:'yyyy-MM-dd HH:mm:ss.sss'", width:'18%', resizable: true },
-                { name: 'Pipeline', field:"Pipeline", width:'14%', resizable: true },
-                { name: 'Plugin', field:"Plugin", width:'20%', resizable: true },
-                { name: 'Type', field:"Type", width:'8%', resizable: true },
-                { name: 'Message', field:"Message", width:'40%', resizable: true },
-                { name: 'actions', width:'40%', resizable: true, enableColumnMenu: false, cellTemplate: actionsTemplate }
+                { name: 'JobId', field: "JobId", width: '14%', resizable: true },
+                { name: 'Job', field: "Job", width: '14%', resizable: true },
+                { name: 'Module', field: "Module", width: '20%', resizable: true },
+                { name: 'Level', field: "Level", width: '8%', resizable: true },
+                { name: 'Message', field:"Message", width:'40%', resizable: true }//,
+                //{ name: 'actions', width:'40%', resizable: true, enableColumnMenu: false, cellTemplate: actionsTemplate }
             ];
 
             $scope.hideMessage = function () {

@@ -12,7 +12,7 @@ namespace BigDataPipeline.Core
     {
         static readonly HashSet<string> tracingLogTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "TRACE", "DEBUG", "TRACING" };
 
-        string _job;
+        PipelineJob _job;
         string _plugin;
         bool _logExceptionStackTrace = true;
         ActionLogLevel _minLogLevel;
@@ -28,7 +28,7 @@ namespace BigDataPipeline.Core
                 throw new ArgumentNullException ("writer");
 
 
-            _job = job.Id;
+            _job = job;
             _plugin = action.Module;
             _minLogLevel = minLogLevel;
             _logExceptionStackTrace = logExceptionStackTrace;
@@ -48,31 +48,31 @@ namespace BigDataPipeline.Core
 
         public void Trace (string message)
         {
-            if (_minLogLevel >= ActionLogLevel.Trace)
+            if (_minLogLevel <= ActionLogLevel.Trace)
                 Log (ActionLogLevel.Trace, message);
         }
 
         public void Debug (string message)
         {
-            if (_minLogLevel >= ActionLogLevel.Debug)
+            if (_minLogLevel <= ActionLogLevel.Debug)
                 Log (ActionLogLevel.Debug, message);
         }
 
         public void Info (string message)
         {
-            if (_minLogLevel >= ActionLogLevel.Info)
+            if (_minLogLevel <= ActionLogLevel.Info)
                 Log (ActionLogLevel.Info, message);
         }
 
         public void Success (string message)
         {
-            if (_minLogLevel >= ActionLogLevel.Success)
+            if (_minLogLevel <= ActionLogLevel.Success)
                 Log (ActionLogLevel.Success, message);
         }
 
         public void Warn (string message)
         {
-            if (_minLogLevel >= ActionLogLevel.Warn)
+            if (_minLogLevel <= ActionLogLevel.Warn)
                 Log (ActionLogLevel.Warn, message);
         }
 
@@ -89,7 +89,7 @@ namespace BigDataPipeline.Core
 
         public void Error (string message, Exception ex)
         {
-            if (_minLogLevel >= ActionLogLevel.Error)
+            if (_minLogLevel <= ActionLogLevel.Error)
                 Log (ActionLogLevel.Error, message, ex);
         }
 
@@ -106,13 +106,12 @@ namespace BigDataPipeline.Core
 
         public void Fatal (string message, Exception ex)
         {
-            if (_minLogLevel >= ActionLogLevel.Fatal)
-                Log (ActionLogLevel.Fatal, message, ex);
+            Log (ActionLogLevel.Fatal, message, ex);
         }
 
         private void Log (ActionLogLevel level, string message, Exception exception = null)
         {
-            _writer.Write (new ActionLogEvent (_job, _plugin, level, message, GetExceptionAsText (exception, _logExceptionStackTrace)));
+            _writer.Write (new ActionLogEvent (_job.Id, _job.Name, _plugin, level, message, GetExceptionAsText (exception, _logExceptionStackTrace)));
         }
 
         private static string GetExceptionAsText (Exception ex, bool includeStackTrace)

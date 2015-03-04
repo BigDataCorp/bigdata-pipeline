@@ -10,9 +10,11 @@ namespace BigDataPipeline.Interfaces
 
         public string JobId { get; set; }
 
+        public string Job { get; set; }
+
         public string Module { get; set; }
 
-        public ActionLogLevel Level { get; set; }
+        public string Level { get; set; }
 
         public string Message { get; set; }
 
@@ -23,11 +25,12 @@ namespace BigDataPipeline.Interfaces
             Date = DateTime.UtcNow;
         }
 
-        public ActionLogEvent (string jobId, string module, ActionLogLevel level, string message, string exception)
+        public ActionLogEvent (string jobId, string job, string module, ActionLogLevel level, string message, string exception)
             : this ()
         {
+            Job = job;
             JobId = jobId;
-            Level = level;
+            Level = level.ToString();
             Module = module;
             Message = message;
             Exception = exception;

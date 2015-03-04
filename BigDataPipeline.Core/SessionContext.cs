@@ -127,6 +127,7 @@ namespace BigDataPipeline.Core
             {
                 Job = new PipelineJob
                 {
+                    Name = "EmitedTask",
                     Enabled = true,
                     RootAction = task
                 },

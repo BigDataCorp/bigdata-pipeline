@@ -175,21 +175,45 @@ namespace BigDataPipeline.Interfaces
                 return (T)v;
             try
             {
+                var desiredType = typeof (T);
                 // if we have a string and a json object, deserialize it
                 if (v is string)
                 {
                     var txt = (string)v;
-                    if (txt.Length > 0 && txt[0] == '{')
+                    if (desiredType.IsEnum)
+                        return (T)Enum.Parse (desiredType, txt, true);
+                    else if (desiredType.IsPrimitive)
+                        return (T)Convert.ChangeType (v, desiredType, System.Globalization.CultureInfo.InvariantCulture);
+                    else if (desiredType == typeof (DateTime) || desiredType == typeof (DateTime?))
+                    {
+                        DateTime dt;
+                        if (DateTime.TryParse (txt, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out dt))
+                            return (T)(object)dt;
+                        return Newtonsoft.Json.JsonConvert.DeserializeObject<T> (txt);
+                    }
+                    else if (desiredType == typeof (Guid) || desiredType == typeof (Guid?))
+                    {
+                        Guid guid;
+                        if (Guid.TryParse (txt, out guid))
+                            return (T)(object)guid;
+                    }
+                    else if (desiredType == typeof (TimeSpan) || desiredType == typeof (TimeSpan?))
+                    {
+                        TimeSpan timespan;
+                        if (TimeSpan.TryParse (txt, out timespan))
+                            return (T)(object)timespan;
+                    }
+                    else if (txt.Length > 0 && txt[0] == '{')
                         return Newtonsoft.Json.JsonConvert.DeserializeObject<T> (txt);
                 }
                 // if we want a string and have a complex object, serialize it
-                else if (typeof (T) == typeof (string) && !v.GetType ().IsPrimitive)
+                else if (desiredType == typeof (string) && !v.GetType ().IsPrimitive)
                 {
                     return (T)(object)Newtonsoft.Json.JsonConvert.SerializeObject (v);
                 }
 
                 // else, use a type convertion with InvariantCulture (faster)
-                return (T)Convert.ChangeType (v, typeof (T), System.Globalization.CultureInfo.InvariantCulture);
+                return (T)Convert.ChangeType (v, desiredType, System.Globalization.CultureInfo.InvariantCulture);
             }
             catch
             {

@@ -67,7 +67,7 @@ namespace BigDataPipeline.Core
             // set query filters
             if (jobId != null)      query = query.Where (i => jobId.Any (j => j == i.JobId));
             if (module != null)     query = query.Where (i => module.Any (j => j == i.Module));
-            if (level != null)      query = query.Where (i => level.Any (j => j == i.Level));
+            if (level != null)      query = query.Where (i => level.Select(j => j.ToString()).Any (j => j == i.Level));
             if (startDate.HasValue) query = query.Where (i => i.Date >= startDate.Value);
             if (endDate.HasValue)   query = query.Where (i => i.Date <= endDate.Value);
             if (skip.HasValue)      query = query.Skip (skip.Value);

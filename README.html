@@ -21,16 +21,6 @@
     <!-- Flatdoc theme -->
     <link href='https://cdn.rawgit.com/rstacruz/flatdoc/v0.9.0/theme-white/style.css' rel='stylesheet'>
     <script src='https://cdn.rawgit.com/rstacruz/flatdoc/v0.9.0/theme-white/script.js'></script>
-
-    <!-- Initializer -->
-    <script>
-        Flatdoc.run({
-            fetcher: Flatdoc.file([
-                './docs/Menu.md',
-                './README.md'
-            ])
-        });
-    </script>
 </head>
 
 <body role='flatdoc' class='no-literate big-h3'>
@@ -49,30 +39,53 @@
         }
 
         function getViewName(str) {
-            if (!str) { return ''; }
+            if (!str) { return str; }
             var i = str.lastIndexOf('/') + 1;
             if (i < 0) { i = 0; }
             return str.substr(i, (str.lastIndexOf('.') || str.length) - i);
         }
 
         function setLocationHash(tag) {
+            if (location.hash === tag) { return; }
             if (history.pushState) {
                 history.pushState(null, null, '#' + tag);
             } else {
                 location.hash = '#' + tag;
             }
         }
+        
+        function getLocationHash() {
+            if (location.hash) {
+                return location.hash.substr(1);
+            }
+        }
+        
+        function loadFlatdocFile(docName) {
+            docName = getViewName(docName) || '';
+            if (docName.toUpperCase() !== 'README') {
+                docName = 'docs/' + docName;
+            }
+            docName = './' + docName + '.md';
+            Flatdoc.run({
+                fetcher: Flatdoc.file(['./docs/Menu.md', docName])
+            });
+            setLocationHash(getViewName(docName));
+        }
 
         $("[role='flatdoc']").on('click', 'a', function (e) {
             var txt = $(this).attr('href');
             if (stringEndsWith(txt, '.md')) {
                 e.preventDefault();
-                Flatdoc.run({
-                    fetcher: Flatdoc.file(['./docs/Menu.md', txt])
-                });
-                setLocationHash(getViewName(txt));
+                loadFlatdocFile(txt);                
             }
         });
+        
+        // intialization
+        if (getLocationHash()){
+            loadFlatdocFile(getLocationHash());
+        } else {
+            loadFlatdocFile('README');
+        }
     </script>
 
 </body>

@@ -104,6 +104,10 @@ namespace BigDataPipeline
                             v = v.Substring (1, v.Length - 2);
                         return (T)Convert.ChangeType (v, typeof (T), System.Globalization.CultureInfo.InvariantCulture);                        
                     }
+                    if (desiredType.IsEnum)
+                    {
+                        return (T)Enum.Parse (desiredType, v, true);                        
+                    }
                     // more comprehensive datetime parser, except formats like "\"\\/Date(1335205592410-0500)\\/\""
                     else if ((desiredType == typeof (DateTime) || desiredType == typeof (DateTime?)) && v.IndexOf ('(', 4, 10) < 0)
                     {                        
@@ -121,7 +125,7 @@ namespace BigDataPipeline
                     else if (desiredType == typeof (TimeSpan) || desiredType == typeof (TimeSpan?))
                     {
                         TimeSpan timespan;
-                        if (TimeSpan.TryParse (Convert.ToString (v), out timespan))
+                        if (TimeSpan.TryParse (v, out timespan))
                             return (T)(object)timespan;
                     }
 
