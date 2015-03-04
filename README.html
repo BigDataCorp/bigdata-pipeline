@@ -83,11 +83,7 @@
         });
         
         // intialization
-        if (getLocationHash()){
-            loadFlatdocFile(getLocationHash());
-        } else {
-            loadFlatdocFile('README');
-        }
+        loadFlatdocFile(getLocationHash() || 'README');
     </script>
 
 </body>

@@ -95,20 +95,11 @@ namespace BigDataPipeline
                     {
                         if (missingQuotes)
                             return (T)(object)v;
+                        // let's deserialize to also unscape the string
                         return Newtonsoft.Json.JsonConvert.DeserializeObject<T> (v);
                     }                    
-                    // else, use a type convertion with InvariantCulture (faster)
-                    else if (desiredType.IsPrimitive)
-                    {
-                        if (!missingQuotes)
-                            v = v.Substring (1, v.Length - 2);
-                        return (T)Convert.ChangeType (v, typeof (T), System.Globalization.CultureInfo.InvariantCulture);                        
-                    }
-                    if (desiredType.IsEnum)
-                    {
-                        return (T)Enum.Parse (desiredType, v, true);                        
-                    }
                     // more comprehensive datetime parser, except formats like "\"\\/Date(1335205592410-0500)\\/\""
+                    // DateTime is tested prior to IConvertible, since it also implements IConvertible
                     else if ((desiredType == typeof (DateTime) || desiredType == typeof (DateTime?)) && v.IndexOf ('(', 4, 10) < 0)
                     {                        
                         DateTime dt;
@@ -116,12 +107,28 @@ namespace BigDataPipeline
                             return (T)(object)dt;
                         return Newtonsoft.Json.JsonConvert.DeserializeObject<T> (v);
                     }
+                    // all primitive types are IConvertible, 
+                    // and if the type implements this interface lets use it!
+                    else if (typeof (IConvertible).IsAssignableFrom (desiredType))
+                    {
+                        if (!missingQuotes)
+                            v = v.Substring (1, v.Length - 2);
+                        // type convertion with InvariantCulture (faster)
+                        return (T)Convert.ChangeType (v, desiredType, System.Globalization.CultureInfo.InvariantCulture);
+                    }
+                    // let's deal with enums
+                    else if (desiredType.IsEnum)
+                    {
+                        return (T)Enum.Parse (desiredType, v, true);
+                    }
+                    // Guid doesn't implement IConvertible
                     else if (desiredType == typeof (Guid) || desiredType == typeof (Guid?))
                     {
                         Guid guid;
                         if (Guid.TryParse (v, out guid))
                             return (T)(object)guid;
                     }
+                    // TimeSpan doesn't implement IConvertible
                     else if (desiredType == typeof (TimeSpan) || desiredType == typeof (TimeSpan?))
                     {
                         TimeSpan timespan;

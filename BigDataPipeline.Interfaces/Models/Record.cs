@@ -101,8 +101,7 @@ namespace BigDataPipeline.Interfaces
         }
 
         public int Count { get { return _data.Count; } }
-
-        
+                
         public Record Set<T> (string fieldName, T value)
         {
             // create a layout if there is none
@@ -147,19 +146,28 @@ namespace BigDataPipeline.Interfaces
             return this;
         }
 
-        public T Get<T> (string fieldName)
+        public object Get (string fieldName)
         {
-            return Get<T> (fieldName, default(T));
+            if (Layout == null)
+                return null;
+            return Get (Layout.IndexOf (fieldName));
+        }
+
+        public object Get (int idx)
+        {
+            return (idx >= 0 && idx < _data.Count) ? _data[idx] : null;
         }
 
         public T Get<T> (string fieldName, T defaultValue)
         {
             if (Layout == null)
                 return defaultValue;
-            int idx = Layout.IndexOf (fieldName);
             // get and convert data
-            return Get (idx, defaultValue);            
+            return Get (Layout.IndexOf (fieldName), defaultValue);
         }
+
+        static Type typeConvertible = typeof (IConvertible);
+
 
         public T Get<T> (int idx, T defaultValue)
         {
@@ -175,45 +183,73 @@ namespace BigDataPipeline.Interfaces
                 return (T)v;
             try
             {
+                var type = v.GetType ();
                 var desiredType = typeof (T);
-                // if we have a string and a json object, deserialize it
-                if (v is string)
+                
+                // we we can have a direct cast, let cast!
+                if (desiredType.IsAssignableFrom(type))
+                {
+                    return (T)v;
+                }
+                // string special convertions
+                else if (v is string)
                 {
                     var txt = (string)v;
+                    if (txt.Length == 0)
+                        return defaultValue;
+                    // let's deal with enums
                     if (desiredType.IsEnum)
                         return (T)Enum.Parse (desiredType, txt, true);
-                    else if (desiredType.IsPrimitive)
-                        return (T)Convert.ChangeType (v, desiredType, System.Globalization.CultureInfo.InvariantCulture);
-                    else if (desiredType == typeof (DateTime) || desiredType == typeof (DateTime?))
+                    // special (more tolerant) DateTime convertion
+                    // DateTime is tested prior to IConvertible, since it also implements IConvertible
+                    if (desiredType == typeof (DateTime) || desiredType == typeof (DateTime?))
                     {
                         DateTime dt;
                         if (DateTime.TryParse (txt, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out dt))
                             return (T)(object)dt;
-                        return Newtonsoft.Json.JsonConvert.DeserializeObject<T> (txt);
                     }
+                    // all primitive types are IConvertible, 
+                    // and if the type implements this interface lets use it!
+                    else if (typeConvertible.IsAssignableFrom (desiredType))
+                    {
+                        // type convertion with InvariantCulture (faster)
+                        return (T)Convert.ChangeType (txt, desiredType, System.Globalization.CultureInfo.InvariantCulture);                        
+                    } 
+                    // Guid doesn't implement IConvertible
                     else if (desiredType == typeof (Guid) || desiredType == typeof (Guid?))
                     {
                         Guid guid;
                         if (Guid.TryParse (txt, out guid))
                             return (T)(object)guid;
                     }
+                    // TimeSpan doesn't implement IConvertible
                     else if (desiredType == typeof (TimeSpan) || desiredType == typeof (TimeSpan?))
                     {
                         TimeSpan timespan;
                         if (TimeSpan.TryParse (txt, out timespan))
                             return (T)(object)timespan;
                     }
-                    else if (txt.Length > 0 && txt[0] == '{')
-                        return Newtonsoft.Json.JsonConvert.DeserializeObject<T> (txt);
+
+                    // finally, fallback to json.net deserialization
+                    return Newtonsoft.Json.JsonConvert.DeserializeObject<T> (txt);
                 }
                 // if we want a string and have a complex object, serialize it
-                else if (desiredType == typeof (string) && !v.GetType ().IsPrimitive)
+                else if (desiredType == typeof (string))
                 {
+                    // first, check if we can use a type convertion with InvariantCulture (faster)
+                    if (typeConvertible.IsAssignableFrom (type))
+                        return (T)Convert.ChangeType (v, desiredType, System.Globalization.CultureInfo.InvariantCulture);
+
+                    // fallback to json.net serialization
                     return (T)(object)Newtonsoft.Json.JsonConvert.SerializeObject (v);
                 }
 
                 // else, use a type convertion with InvariantCulture (faster)
-                return (T)Convert.ChangeType (v, desiredType, System.Globalization.CultureInfo.InvariantCulture);
+                if (typeConvertible.IsAssignableFrom (type) && typeConvertible.IsAssignableFrom (desiredType))
+                    return (T)Convert.ChangeType (v, desiredType, System.Globalization.CultureInfo.InvariantCulture);
+                // finally simply fallback to json.net deserialization
+                return Newtonsoft.Json.JsonConvert.DeserializeObject<T> (Newtonsoft.Json.JsonConvert.SerializeObject (v));
+                //return defaultValue;
             }
             catch
             {
@@ -221,27 +257,9 @@ namespace BigDataPipeline.Interfaces
             }
         }
 
-        public object Get (string fieldName)
-        {
-            if (Layout == null)
-                return null;
-            int idx = Layout.IndexOf (fieldName);            
-            return Get(idx);
-        }
-
-        public object Get (int idx)
-        {
-            object v = null;
-            if (idx >= 0 && idx < _data.Count)
-            {
-                v = _data[idx];
-            }
-            return v;
-        }
-
         public void Clear ()
         {
-            _data.Clear ();
+            lock (_data) { _data.Clear (); }
         }
 
         public void CopyFrom (Record source)
