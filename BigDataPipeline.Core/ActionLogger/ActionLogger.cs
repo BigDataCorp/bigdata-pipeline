@@ -13,23 +13,25 @@ namespace BigDataPipeline.Core
         static readonly HashSet<string> tracingLogTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "TRACE", "DEBUG", "TRACING" };
 
         PipelineJob _job;
-        string _plugin;
+        ActionDetails _action;
         bool _logExceptionStackTrace = true;
         ActionLogLevel _minLogLevel;
         IActionLogStorage _writer;
+        string _origin;
 
-        public ActionLogger (PipelineJob job, ActionDetails action, IActionLogStorage writer, ActionLogLevel minLogLevel, bool logExceptionStackTrace)
+        public ActionLogger (PipelineJob job, ActionDetails action , TaskOrigin origin, IActionLogStorage writer, ActionLogLevel minLogLevel, bool logExceptionStackTrace)
         {
             if (job == null)
                 throw new ArgumentNullException ("job");
             if (action == null)
-                throw new ArgumentNullException ("plugin");
+                throw new ArgumentNullException ("action");
             if (writer == null)
                 throw new ArgumentNullException ("writer");
 
 
             _job = job;
-            _plugin = action.Module;
+            _action = action;
+            _origin = origin.ToString ();
             _minLogLevel = minLogLevel;
             _logExceptionStackTrace = logExceptionStackTrace;
 
@@ -111,7 +113,7 @@ namespace BigDataPipeline.Core
 
         private void Log (ActionLogLevel level, string message, Exception exception = null)
         {
-            _writer.Write (new ActionLogEvent (_job.Id, _job.Name, _plugin, level, message, GetExceptionAsText (exception, _logExceptionStackTrace)));
+            _writer.Write (new ActionLogEvent (_job, _action, _origin, level, message, GetExceptionAsText (exception, _logExceptionStackTrace)));
         }
 
         private static string GetExceptionAsText (Exception ex, bool includeStackTrace)

@@ -20,6 +20,10 @@
 5. Job refactored    
     * PluginId => Module
 	* Comments => Description
+	* Domain => Group
     
 6. Module refactored
     * IAWSRedshiftPluginDynamicScript => Initialize (DbConnection connection, AWSS3Helper s3, ISessionContext context)
+	
+7. configuration
+	* pluginFolder => modulesFolder

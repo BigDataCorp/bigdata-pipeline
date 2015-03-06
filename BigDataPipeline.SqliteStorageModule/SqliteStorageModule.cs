@@ -18,9 +18,9 @@ namespace BigDataPipeline.SqliteStorage
         {            
         }
 
-        public IEnumerable<PluginParameterDetails> GetParameterDetails ()
+        public IEnumerable<ModuleParameterDetails> GetParameterDetails ()
         {
-            yield return new PluginParameterDetails ("workFolder", typeof (string), "Path to database files location", true);
+            yield return new ModuleParameterDetails ("workFolder", typeof (string), "Path to database files location", true);
         }
 
         public void Initialize (Record systemOptions)

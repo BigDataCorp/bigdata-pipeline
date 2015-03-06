@@ -39,7 +39,7 @@ namespace BigDataPipeline.Core
 
         public IActionLogStorage GetActionLoggerStorage ()
         {
-            return PluginContainer.GetInstance<IActionLogStorage> (_actionLoggerOutputModuleName);
+            return ModuleContainer.Instance.GetInstance<IActionLogStorage> (_actionLoggerOutputModuleName);
         }
 
         public IAccessControlModule GetAccessControlModule ()
@@ -52,7 +52,7 @@ namespace BigDataPipeline.Core
             get { return _instance; }
         }
 
-        public void Initialize (string pluginFolder, string workFolder, Record systemOptions, params Type[] listOfAdditionalInterfaces)
+        public void Initialize (string modulesFolder, string workFolder, Record systemOptions, params Type[] listOfAdditionalInterfaces)
         {
             _logger = NLog.LogManager.GetLogger ("PipelineService");
             _logger.Debug ("[start] Initialization...");
@@ -60,10 +60,10 @@ namespace BigDataPipeline.Core
             // prepare configuration
             _systemOptions = systemOptions ?? new Record ();
             _systemOptions.Set ("workFolder", workFolder);
-            _systemOptions.Set ("pluginFolder", workFolder);
+            _systemOptions.Set ("modulesFolder", modulesFolder);
 
-            // load plugins
-            LoadPlugins (pluginFolder, listOfAdditionalInterfaces);
+            // load modules
+            LoadModules (modulesFolder, listOfAdditionalInterfaces);
 
             // prepare storage
             PrepareStorage (_systemOptions);
@@ -95,16 +95,16 @@ namespace BigDataPipeline.Core
             _instance = this;
 
             // continue with some async initialization
-            Task.Run (() => PrepareSystemPlugins ());
+            Task.Run (() => PrepareSystemModules ());
 
             _logger.Debug ("[done] Initialization...");
         }
   
-        private void LoadPlugins (string pluginFolder, params Type[] listOfAdditionalInterfaces)
+        private void LoadModules (string modulesFolder, params Type[] listOfAdditionalInterfaces)
         {
-            _logger.Debug ("[start] Loading plugins...");
+            _logger.Debug ("[start] Loading modules...");
 
-            // prepare list of interfaces/plugins
+            // prepare list of interfaces/modules
             var interfaces = new Type[]
             {
                 typeof(IActionModule),
@@ -114,19 +114,19 @@ namespace BigDataPipeline.Core
                 typeof(IActionLogStorage)
             }.Concat (listOfAdditionalInterfaces).ToArray ();
 
-            // load plugins
-            PluginContainer.Initialize (pluginFolder, interfaces);
+            // load modules
+            ModuleContainer.Instance.Initialize (modulesFolder, interfaces);
 
-            _logger.Debug ("[done] Loading plugins...");
+            _logger.Debug ("[done] Loading modules...");
         }
 
-        private void PrepareSystemPlugins ()
+        private void PrepareSystemModules ()
         {
-            _logger.Debug ("[start] Preparing system plugins...");
-            // load system plugins
+            _logger.Debug ("[start] Preparing system modules...");
+            // load system modules
             try
             {
-                foreach (var j in PluginContainer.GetInstances<ISystemModule> ())
+                foreach (var j in ModuleContainer.Instance.GetInstances<ISystemModule> ())
                 {
                     try
                     {
@@ -150,7 +150,7 @@ namespace BigDataPipeline.Core
             {
                 _logger.Error (ex);
             }
-            _logger.Debug ("[done] Preparing system plugins...");
+            _logger.Debug ("[done] Preparing system modules...");
         }
 
         private void PrepareStorage (Record systemOptions)
@@ -171,11 +171,11 @@ namespace BigDataPipeline.Core
                 storageType = "SqliteStorageModule";
 
             // try to load selected storage or clear previous selection
-            _storage = (!String.IsNullOrEmpty (storageModule)) ? PluginContainer.GetInstance (storageModule) as IStorageModule : null;
+            _storage = (!String.IsNullOrEmpty (storageModule)) ? ModuleContainer.Instance.GetInstance (storageModule) as IStorageModule : null;
 
-            // get storage plugins
-            var storagesModules = new List<string>();            
-            foreach (var s in PluginContainer.GetTypes<IStorageModule> ())
+            // get storage modules
+            var storagesModules = new List<string>();
+            foreach (var s in ModuleContainer.Instance.GetTypes<IStorageModule> ())
             {
                 storagesModules.Add (s.Name);
 
@@ -186,7 +186,7 @@ namespace BigDataPipeline.Core
                     s.Name.Equals (storageType, StringComparison.OrdinalIgnoreCase) ||
                     s.FullName.Equals (storageType, StringComparison.OrdinalIgnoreCase))
                 {
-                    _storage = PluginContainer.GetInstance(s) as IStorageModule;
+                    _storage = ModuleContainer.Instance.GetInstance (s) as IStorageModule;
                 }
             }
 
@@ -222,7 +222,7 @@ namespace BigDataPipeline.Core
             // check configured storage
             _actionLoggerOutputModuleName = systemOptions.Get ("actionLoggerOutputModule", "");
             // try to initialize
-            using (var actionLogWriter = PluginContainer.GetInstance<IActionLogStorage> (_actionLoggerOutputModuleName))
+            using (var actionLogWriter = ModuleContainer.Instance.GetInstance<IActionLogStorage> (_actionLoggerOutputModuleName))
             {
                 if (actionLogWriter != null)
                 {
@@ -244,10 +244,10 @@ namespace BigDataPipeline.Core
             // check configured module
             string accessControlModule = systemOptions.Get ("accessControlModule", "");            
 
-            // get storage plugin
+            // get storage module
             var accessControlModules = new List<string> ();
             _accessControlModule = null;
-            foreach (var s in PluginContainer.GetTypes<IAccessControlModule> ())
+            foreach (var s in ModuleContainer.Instance.GetTypes<IAccessControlModule> ())
             {
                 accessControlModules.Add (s.Name);
                 if (_accessControlModule != null)
@@ -256,7 +256,7 @@ namespace BigDataPipeline.Core
                     s.Name.Equals (accessControlModule, StringComparison.OrdinalIgnoreCase) ||
                     s.FullName.Equals (accessControlModule, StringComparison.OrdinalIgnoreCase))
                 {
-                    _accessControlModule = PluginContainer.GetInstance (s) as IAccessControlModule;
+                    _accessControlModule = ModuleContainer.Instance.GetInstance (s) as IAccessControlModule;
                 }
             }
 
@@ -308,12 +308,12 @@ namespace BigDataPipeline.Core
             // check for storage intialization
             if (_storage == null)
             {
-                PrepareStorage (_systemOptions);
+                _logger.Debug ("Storage not initalized... aborting execution phase");
                 return;
             }
 
             // increment execution counter
-            _systemStatus.Set ("excutionCount", _systemStatus.Get ("excutionCount", 0) + 1);
+            _systemStatus.Set<long> ("excutionCount", _systemStatus.Get<long> ("excutionCount", 0) + 1);
 
             // execute task internal loop
             TaskExecutionPipeline.Instance.Execute ();
@@ -367,7 +367,7 @@ namespace BigDataPipeline.Core
                     Id = job.Id,
                     Job = job,
                     Start = job.NextExecution,
-                    Origin = JobExecutionOrigin.Scheduller
+                    Origin = TaskOrigin.Scheduller
                 });
             }
 

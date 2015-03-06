@@ -21,7 +21,7 @@ namespace BigDataPipeline.Core
             set { _events = value; }
         }
 
-        public IEnumerable<PluginParameterDetails> GetParameterDetails ()
+        public IEnumerable<ModuleParameterDetails> GetParameterDetails ()
         {
             // no need!
             yield break;

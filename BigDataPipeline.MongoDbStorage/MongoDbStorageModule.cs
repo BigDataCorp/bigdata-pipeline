@@ -10,10 +10,10 @@ namespace BigDataPipeline.Mongo
 {
     public class MongoDbStorageModule : IStorageModule
     {
-        public IEnumerable<PluginParameterDetails> GetParameterDetails ()
+        public IEnumerable<ModuleParameterDetails> GetParameterDetails ()
         {
-            yield return new PluginParameterDetails ("storageConnectionString", typeof (string), "mongodb://[username:password@]host1[:port1][,host2[:port2],...[,hostN[:portN]]][/[database][?options]]", true);
-            yield return new PluginParameterDetails ("storageDatabaseName", typeof (string), "Name of the database for the pipeline collections. Defaults to BigdataPipeline", false);
+            yield return new ModuleParameterDetails ("storageConnectionString", typeof (string), "mongodb://[username:password@]host1[:port1][,host2[:port2],...[,hostN[:portN]]][/[database][?options]]", true);
+            yield return new ModuleParameterDetails ("storageDatabaseName", typeof (string), "Name of the database for the pipeline collections. Defaults to BigdataPipeline", false);
         }
 
         static MongoDatabase _db;

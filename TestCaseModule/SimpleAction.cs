@@ -14,9 +14,9 @@ namespace TestCaseModule
             return "";
         }
 
-        public IEnumerable<PluginParameterDetails> GetParameterDetails ()
+        public IEnumerable<ModuleParameterDetails> GetParameterDetails ()
         {
-            yield return new PluginParameterDetails ("Parameter1", typeof (string), "First parameter...", true);
+            yield return new ModuleParameterDetails ("Parameter1", typeof (string), "First parameter...", true);
         }
 
         public bool Execute (ISessionContext context)

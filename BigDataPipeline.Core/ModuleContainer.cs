@@ -5,56 +5,66 @@ using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BigDataPipeline.Core
 {
-    public class PluginContainer
+    public class ModuleContainer : IModuleContainer
     {
         delegate object InstanceFactory (params object[] args);
      
-        static object padlock = new object ();
+        object padlock = new object ();
 
-        static Dictionary<string, List<Type>> exportedTypesByBaseType = new Dictionary<string, List<Type>> (StringComparer.Ordinal);
+        Dictionary<string, List<Type>> exportedTypesByBaseType = new Dictionary<string, List<Type>> (StringComparer.Ordinal);
 
-        static Dictionary<string, Type> exportedTypes = new Dictionary<string, Type> (StringComparer.Ordinal);
+        Dictionary<string, Type> exportedTypes = new Dictionary<string, Type> (StringComparer.Ordinal);
 
-        static Dictionary<string, Assembly> loadedAssemblies = new Dictionary<string, Assembly> (StringComparer.Ordinal);
+        Dictionary<string, Assembly> loadedAssemblies = new Dictionary<string, Assembly> (StringComparer.Ordinal);
 
-        static Dictionary<string, InstanceFactory> exportedFactories = new Dictionary<string, InstanceFactory> (StringComparer.Ordinal);
+        Dictionary<string, InstanceFactory> exportedFactories = new Dictionary<string, InstanceFactory> (StringComparer.Ordinal);
 
-        /// <summary>
-        /// Initializes the specified plugin folder.<para/>
-        /// Will load all assemblies found in the plugin folder and subfolders and
-        /// scan for the types derived from listOfInterfaces.
-        /// </summary>
-        /// <param name="pluginFolder">List of folders where plugin/modules are located.</param>
-        /// <param name="listOfInterfaces">The list of interfaces or base types.</param>
-        public static void Initialize (string[] pluginFolder, Type[] listOfInterfaces)
+        NLog.Logger _logger = NLog.LogManager.GetLogger ("ModuleContainer");
+
+        static ModuleContainer _instance = new ModuleContainer ();
+
+        public static ModuleContainer Instance
         {
-            lock (padlock)
+            get
             {
-                ContainerInitialization (pluginFolder, listOfInterfaces);
+                return _instance;
             }
         }
 
         /// <summary>
-        /// Initializes the specified plugin folder.<para/>
-        /// Will load all assemblies found in the plugin folder and subfolders and
+        /// Initializes the specified modules folder.<para/>
+        /// Will load all assemblies found in the modules folder and subfolders and
         /// scan for the types derived from listOfInterfaces.
         /// </summary>
-        /// <param name="pluginFolder">The plugin folder.</param>
+        /// <param name="modulesFolder">List of folders where plugin/modules are located.</param>
         /// <param name="listOfInterfaces">The list of interfaces or base types.</param>
-        public static void Initialize (string pluginFolder, Type[] listOfInterfaces)
+        public void Initialize (string[] modulesFolder, Type[] listOfInterfaces)
         {
             lock (padlock)
             {
-                ContainerInitialization (new string[] { pluginFolder }, listOfInterfaces);
+                ContainerInitialization (modulesFolder, listOfInterfaces);
+            }
+        }
+
+        /// <summary>
+        /// Initializes the specified modules folder.<para/>
+        /// Will load all assemblies found in the modules folder and subfolders and
+        /// scan for the types derived from listOfInterfaces.
+        /// </summary>
+        /// <param name="modulesFolder">The modules folder.</param>
+        /// <param name="listOfInterfaces">The list of interfaces or base types.</param>
+        public void Initialize (string modulesFolder, Type[] listOfInterfaces)
+        {
+            lock (padlock)
+            {
+                ContainerInitialization (new string[] { modulesFolder }, listOfInterfaces);
             }
         }
         
-        private static void ContainerInitialization (string[] pluginFolder, Type[] listOfInterfaces)
+        private void ContainerInitialization (string[] modulesFolder, Type[] listOfInterfaces)
         {
             // if we have no interface, create an empty list
             if (listOfInterfaces == null)
@@ -63,8 +73,8 @@ namespace BigDataPipeline.Core
             // get base folder
             var baseAddress = AppDomain.CurrentDomain.BaseDirectory;
             // prepare extension folder
-            if (pluginFolder == null || pluginFolder.Length == 0 || (pluginFolder.Length == 1 && String.IsNullOrEmpty (pluginFolder[0])))
-                pluginFolder = new string[] { Path.Combine (baseAddress, "plugins") };
+            if (modulesFolder == null || modulesFolder.Length == 0 || (modulesFolder.Length == 1 && String.IsNullOrEmpty (modulesFolder[0])))
+                modulesFolder = new string[] { Path.Combine (baseAddress, "modules") };
             
             // initialize
             foreach (var t in listOfInterfaces)
@@ -82,13 +92,13 @@ namespace BigDataPipeline.Core
                 }
             }
 
-            // register assembly resolution for our loaded plugins
+            // register assembly resolution for our loaded modules
             AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
 
             var ignoredAssemblies = new Dictionary<string,string> (StringComparer.Ordinal);
 
             // check the directory exists
-            foreach (var folder in pluginFolder)
+            foreach (var folder in modulesFolder)
             {
                 var directoryInfo = new DirectoryInfo (folder);
                 if (!directoryInfo.Exists)
@@ -97,7 +107,7 @@ namespace BigDataPipeline.Core
                     directoryInfo.Refresh ();
                 }
             
-                // read all files in plugin folder, looking for assemblies
+                // read all files in modules folder, looking for assemblies
                 // let's read all files, since linux use case sensitive search wich could lead
                 // to case problems like ".dll" and ".Dll"            
                 foreach (var f in directoryInfo.EnumerateFiles ("*", SearchOption.AllDirectories))
@@ -142,7 +152,7 @@ namespace BigDataPipeline.Core
                     }
                     catch (Exception ex)
                     {
-                        NLog.LogManager.GetLogger ("PluginContainer").Warn (ex);
+                        _logger.Warn (ex);
                     }
                 }
             }
@@ -169,7 +179,7 @@ namespace BigDataPipeline.Core
                                     // ignore if the full name is the same!!!
                                     if (exportedTypes[t.Name].FullName == t.FullName)
                                         continue;
-                                    NLog.LogManager.GetLogger ("PluginContainer").Info ("Module with same name detected {0}. {1} was overwritten with {2}.", t.Name, exportedTypes[t.Name].FullName, t.FullName);                                    
+                                    _logger.Info ("Module with same name detected {0}. {1} was overwritten with {2}.", t.Name, exportedTypes[t.Name].FullName, t.FullName);                                    
                                 }
 
                                 // register type by fullName (namespace + name) and name
@@ -192,13 +202,13 @@ namespace BigDataPipeline.Core
             }
             catch (Exception ex)
             {
-                NLog.LogManager.GetLogger ("PluginContainer").Warn (ex);
+                _logger.Warn (ex);
             }
 
             // log initialization status
             if (ignoredAssemblies.Count > 0)
             {
-                NLog.LogManager.GetLogger ("PluginContainer").Info ("Assemblies ignorados: " + Environment.NewLine + 
+                _logger.Info ("Assemblies ignorados: " + Environment.NewLine + 
                     "[" + 
                     Environment.NewLine +
                     String.Join ("," + Environment.NewLine, ignoredAssemblies.Select (i => i.Key + ": " + i.Value)) + Environment.NewLine +
@@ -206,7 +216,7 @@ namespace BigDataPipeline.Core
             }
         }        
 
-        private static Assembly CurrentDomain_AssemblyResolve (object sender, ResolveEventArgs args)
+        private Assembly CurrentDomain_AssemblyResolve (object sender, ResolveEventArgs args)
         {
             Assembly a;
             if (!loadedAssemblies.TryGetValue (args.Name, out a))
@@ -220,7 +230,7 @@ namespace BigDataPipeline.Core
         /// </summary>
         /// <typeparam name="T">The type to create a constructor.</typeparam>
         /// <returns></returns>
-        private static InstanceFactory CreateFactory<T> ()
+        private InstanceFactory CreateFactory<T> ()
         {
             return CreateFactory (typeof (T));
         }
@@ -230,7 +240,7 @@ namespace BigDataPipeline.Core
         /// </summary>
         /// <param name="type">The type to create a constructor.</param>
         /// <returns></returns>
-        private static InstanceFactory CreateFactory (Type type)
+        private InstanceFactory CreateFactory (Type type)
         {
             return CreateFactory (type.GetConstructors ().OrderByDescending (i => i.GetParameters ().Length).First ());
         }
@@ -240,7 +250,7 @@ namespace BigDataPipeline.Core
         /// </summary>
         /// <param name="ctor">The constructor information.</param>
         /// <returns></returns>
-        private static InstanceFactory CreateFactory (ConstructorInfo ctor)
+        private InstanceFactory CreateFactory (ConstructorInfo ctor)
         {
             // code http://rogeralsing.com/2008/02/28/linq-expressions-creating-objects/
             Type type = ctor.DeclaringType;
@@ -284,7 +294,7 @@ namespace BigDataPipeline.Core
         /// <typeparam name="T">The type of the T.</typeparam>
         /// <param name="fullTypeName">Full name of the type.</param>
         /// <returns></returns>
-        public static T GetInstance<T> (string fullTypeName) where T : class
+        public T GetInstance<T> (string fullTypeName) where T : class
         {
             return GetInstance (fullTypeName) as T;
         }
@@ -294,7 +304,7 @@ namespace BigDataPipeline.Core
         /// </summary>
         /// <param name="type">The type.</param>
         /// <returns></returns>
-        public static object GetInstance (Type type)
+        public object GetInstance (Type type)
         {
             return GetInstance (type.FullName);
         }
@@ -304,7 +314,7 @@ namespace BigDataPipeline.Core
         /// </summary>
         /// <param name="fullTypeName">Full name of the type, namespace and class name.</param>
         /// <returns></returns>
-        public static object GetInstance (string fullTypeName)
+        public object GetInstance (string fullTypeName)
         {
             Type t;
             InstanceFactory ctor;
@@ -325,11 +335,21 @@ namespace BigDataPipeline.Core
         }
 
         /// <summary>
+        /// Gets an instance that implements the desired type T.
+        /// </summary>
+        /// <param name="type">The base type.</param>
+        /// <returns></returns>
+        public T GetInstance<T> () where T : class
+        {
+            return GetInstances<T> ().FirstOrDefault ();
+        }
+
+        /// <summary>
         /// Gets instances for all registered types for a given interface or base type.
         /// </summary>
         /// <typeparam name="T">The interface or base type.</typeparam>
         /// <returns>List of intances of registered types</returns>
-        public static IEnumerable<T> GetInstances<T> () where T : class
+        public IEnumerable<T> GetInstances<T> () where T : class
         {
             foreach (var t in GetTypes<T> ())
                 yield return GetInstance<T> (t.FullName);
@@ -340,14 +360,13 @@ namespace BigDataPipeline.Core
         /// </summary>
         /// <typeparam name="T">The interface or base type.</typeparam>
         /// <returns>List of registered types</returns>
-        public static IEnumerable<Type> GetTypes<T> () where T : class
+        public IEnumerable<Type> GetTypes<T> () where T : class
         {
             List<Type> list;
             if (!exportedTypesByBaseType.TryGetValue (typeof (T).Name, out list))
-                throw new Exception ("Service Type unknow. Type not registered on PluginContainer.Initialize call.");
+                throw new Exception ("Service Type unknow. Type not registered on ModuleContainer.Initialize call.");
             for (int i = 0; i < list.Count; i++)
                 yield return list[i];
         }
-
     }
 }

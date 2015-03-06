@@ -13,7 +13,7 @@ namespace BigDataPipeline.Core.Interfaces
         /// Gets the parameter details.
         /// </summary>
         /// <returns></returns>
-        IEnumerable<PluginParameterDetails> GetParameterDetails ();
+        IEnumerable<ModuleParameterDetails> GetParameterDetails ();
 
         /// <summary>
         /// Initializes the specified system options.

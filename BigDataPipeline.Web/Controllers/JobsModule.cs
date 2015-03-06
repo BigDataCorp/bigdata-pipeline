@@ -75,7 +75,7 @@ namespace BigDataPipeline.Web.site.Controllers
                             Id = job.Id,
                             Job = job,
                             Start = DateTime.UtcNow,
-                            Origin = JobExecutionOrigin.Scheduller
+                            Origin = TaskOrigin.Scheduller
                         };
                         task.Options.Set ("actionLogLevel", "Trace");
 

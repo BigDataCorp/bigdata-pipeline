@@ -45,7 +45,7 @@ namespace BigDataPipeline.Core
                 appDomainSetup.ShadowCopyDirectories = String.Join (";", new List<string>
                 {
                     baseDirectory,
-                    System.IO.Path.Combine (baseDirectory, "Plugins")
+                    System.IO.Path.Combine (baseDirectory, "modules")
                 });
             }
 

@@ -15,11 +15,11 @@ namespace BigDataPipeline.Core
         IStorageModule _storage;
         
         TimeSpan _executionQueueUpperThreshold = TimeSpan.FromMinutes (5);
-        TimeSpan _executionQueueLowerThreshold = TimeSpan.FromMinutes (15);
+        TimeSpan _executionQueueLowerThreshold = TimeSpan.FromMinutes (15).Negate();
         NLog.Logger _logger = NLog.LogManager.GetLogger ("PipelineService");
         bool _closed = false;
 
-         static TaskExecutionPipeline _instance = new TaskExecutionPipeline ();
+        static TaskExecutionPipeline _instance = new TaskExecutionPipeline ();
         
         public static TaskExecutionPipeline Instance
         {
@@ -39,21 +39,23 @@ namespace BigDataPipeline.Core
 
         public void Execute ()
         {
-            var threshold = DateTime.UtcNow.Add (_executionQueueUpperThreshold);
-            var thresholdOld = DateTime.UtcNow.Subtract (_executionQueueLowerThreshold);
-            if (_storage == null)
-                return;
+            DateTime passStart = DateTime.UtcNow;            
+
+            // load enqued tasks and try to execute them
             foreach (var task in _storage.GetEnqueuedTasks ())
             {
+                // calculate when we should execute it!
+                TimeSpan dueTime = (task.Start - passStart);
+                
                 // discard old/expired tasks
-                if (task.Start <= thresholdOld)
+                if (dueTime < _executionQueueLowerThreshold)
                 {
                     // remove task
                     _storage.RemoveEnqueuedTask (task);
                 }
-                else if (task.Start <= threshold)
-                {                    
-                    ExecuteTask (new SessionContext (task));
+                else if (dueTime <= _executionQueueUpperThreshold)
+                {
+                    FireTaskExecution (new SessionContext (task), dueTime);
                     // remove task
                     _storage.RemoveEnqueuedTask (task);
                 }
@@ -62,103 +64,12 @@ namespace BigDataPipeline.Core
 
         public bool TryAddTask (SessionContext task)
         {
+            if (task == null || task.Job == null || task.Job.RootAction == null)
+                return false;
             if (_closed || openTasks.ContainsKey (task.Id))
                 return false;
             AddTask (task);
             return true;
-        }
-
-        private void AddTask (SessionContext task)
-        {
-            if (_closed) return;
-            if (task.Start.Kind != DateTimeKind.Utc)
-                task.Start = task.Start.ToUniversalTime ();
-            if (task.Start <= DateTime.UtcNow.Add (_executionQueueUpperThreshold))
-                ExecuteTask (task);
-            else
-                EnqueueTask (task);
-        }
-
-        private void EnqueueTask (SessionContext context)
-        {
-            _storage.EnqueueTask (context);
-        }
-
-        private void ExecuteTask (SessionContext context)
-        {
-            // add or overwrite task
-            SessionContext existingTask;
-            if (openTasks.TryGetValue (context.Id, out existingTask))
-                existingTask.ClearTimerReference ();
-            openTasks[context.Id] = context;
-
-            // prepare timer
-            int dueTime = (int)(context.Start - DateTime.UtcNow).TotalMilliseconds;
-            if (dueTime < 0)
-                dueTime = 0;
-            context.SetTimerReference (new System.Threading.Timer (IntenalExecution, context, dueTime, System.Threading.Timeout.Infinite));
-        }
-
-        private void IntenalExecution (object state)
-        {
-            var context = (SessionContext)state;
-            openTasks.TryRemove (context.Id, out context);            
-            try
-            {
-                if (context == null || context.Job == null)
-                    return;
-                _logger.Debug ("Executing collection job: {0} {1}.{2} ", context.Job.Id, context.Job.Domain ?? "", context.Job.Name ?? "");
-
-                // load collection and update its reference                
-                var savedJob = _storage.GetPipelineCollection (context.Job.Id);
-                // mark schedulled task execution start
-                if (savedJob != null && context.Origin == JobExecutionOrigin.Scheduller)
-                {
-                    // if it is a scheduller generated task, the collection must be enabled to proceed
-                    if (!savedJob.Enabled)
-                        return;
-                    savedJob.MarkExecutionStart ();
-                    _storage.SavePipelineCollection (savedJob);
-                }
-
-                // execute task
-                ExecuteJobTask (context);
-
-                // if it is a scheduller generated task, calculate next task execution
-                if (savedJob != null && context.Origin == JobExecutionOrigin.Scheduller)
-                {
-                    // reload collection
-                    savedJob = _storage.GetPipelineCollection (context.Job.Id);
-                    // if it is a scheduller generated task, the collection must be enabled to proceed
-                    if (savedJob == null || !savedJob.Enabled) return;
-
-                    // check scheduled execution
-                    var execute = savedJob.ShouldExecute ();
-                
-                    // try to execute
-                    if (execute == SchedullerStatus.ShouldExecute)
-                    {
-                        // set task
-                        TryAddTask (new SessionContext
-                        {
-                            Id = savedJob.Id,
-                            Job = savedJob,
-                            Start = savedJob.NextExecution,
-                            Origin = JobExecutionOrigin.Scheduller
-                        });
-                    }
-                }
-
-            }
-            catch (Exception ex)
-            {
-                _logger.Error (ex);
-            }
-            finally
-            {
-                // release timer
-                context.ClearTimerReference ();                
-            }
         }
 
         public void Close (bool discardWaitingTasks)
@@ -179,20 +90,120 @@ namespace BigDataPipeline.Core
                 // second pass to dump tasks not executed to disk            
                 foreach (var t in openTasks)
                 {
-                    if (t.Value.Origin != JobExecutionOrigin.Scheduller)
+                    if (t.Value.Origin != TaskOrigin.Scheduller)
                         _storage.EnqueueTask (t.Value);
                 }
             }
             openTasks.Clear ();
         }
-        
+
         public void Dispose ()
         {
             Close (false);
         }
 
+        private void AddTask (SessionContext task)
+        {
+            if (_closed) return;
+            if (task.Start.Kind != DateTimeKind.Utc)
+                task.Start = task.Start.ToUniversalTime ();
+            TimeSpan dueTime = (task.Start - DateTime.UtcNow);
+            if (dueTime <= _executionQueueUpperThreshold)
+                FireTaskExecution (task, dueTime);
+            else
+                EnqueueTask (task);
+        }
+
+        private void EnqueueTask (SessionContext context)
+        {
+            _storage.EnqueueTask (context);
+        }
+
+        private void FireTaskExecution (SessionContext context, TimeSpan delay)
+        {
+            // add or overwrite task
+            SessionContext existingTask;
+            if (openTasks.TryGetValue (context.Id, out existingTask))
+                existingTask.ClearTimerReference ();
+            openTasks[context.Id] = context;
+
+            // prepare timer
+            //int dueTime = (int)(context.Start - DateTime.UtcNow).TotalMilliseconds;
+            int dueTime = (int)delay.TotalMilliseconds;
+            if (dueTime < 0)
+                dueTime = 0;
+            context.SetTimerReference (new System.Threading.Timer (IntenalExecution, context, dueTime, System.Threading.Timeout.Infinite));
+        }
+
+        private void IntenalExecution (object state)
+        {  
+            // try to execute task
+            try
+            {
+                var context = (SessionContext)state;
+
+                // remove this task from in memory waiting list
+                openTasks.TryRemove (context.Id, out context);
+                // release timer
+                context.ClearTimerReference ();
+
+                _logger.Debug ("Executing collection job: {0} {1}.{2} ", context.Job.Id, context.Job.Group ?? "", context.Job.Name ?? "");
+
+                // special preparation for schedulled tasks
+                if (context.Origin == TaskOrigin.Scheduller)
+                {
+                    // load collection and update its reference                
+                    var savedJob = _storage.GetPipelineCollection (context.Job.Id);
+                    // mark schedulled task execution start
+                    if (savedJob != null)
+                    {
+                        // if it is a scheduller generated task, the collection must be enabled to proceed
+                        if (!savedJob.Enabled)
+                            return;
+                        savedJob.MarkExecutionStart ();
+                        _storage.SavePipelineCollection (savedJob);
+                    }
+                }
+                
+                // execute task
+                ExecuteJobTask (context);
+
+                // if it is a scheduller generated task, calculate next task execution
+                if (context.Origin == TaskOrigin.Scheduller)
+                {
+                    // reload collection
+                    var savedJob = _storage.GetPipelineCollection (context.Job.Id);
+                    // if it is a scheduller generated task, the collection must be enabled to proceed
+                    if (savedJob == null || !savedJob.Enabled)
+                    {
+                        // check scheduled execution
+                        var execute = savedJob.ShouldExecute ();
+                
+                        // try to execute
+                        if (execute == SchedullerStatus.ShouldExecute)
+                        {
+                            // set task
+                            TryAddTask (new SessionContext
+                            {
+                                Id = savedJob.Id,
+                                Job = savedJob,
+                                Start = savedJob.NextExecution,
+                                Origin = TaskOrigin.Scheduller
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error (ex);
+            }           
+        }
+
         private void ExecuteJobTask (SessionContext context)
         {
+            // TODO: consider put an task queue to balance concurrent task executions...
+
             // put a token in the cache to sinalize the service that we have a job running
             // it is not accurate but should work in common cases. 
             // This cached token is used on the service stop request: PipelineService.Close()
@@ -205,52 +216,35 @@ namespace BigDataPipeline.Core
             finally
             {
                 SimpleHelpers.MemoryCache<PipelineExecutionLock>.Remove (padLock.Key);
-            }
-            //// allow only 100 concurrent similar jobs
-            //PipelineExecutionLock padLock = null;
-            //// try to execute action tree
-            //try
-            //{ 
-            //    var key = context.Job.Id;
-            //    padLock = SimpleHelpers.MemoryCache<PipelineExecutionLock>.GetOrSyncAdd (key, k => new PipelineExecutionLock { Key = k }, 20);
-            //    if (padLock != null && padLock.Inc () > 100)
-            //        return;
-            //    SimpleHelpers.MemoryCache<PipelineExecutionLock>.Set (key, padLock);
-            
-            //    ExecuteAllJobAction (context, context.Job.RootAction);
-            //}
-            //finally
-            //{
-            //    if (padLock != null)
-            //        padLock.Dec ();
-            //}
+            }            
         }
 
-        private void ExecuteAllJobAction (SessionContext context, ActionDetails action)
+        private void ExecuteAllJobAction (SessionContext parentContext, ActionDetails action)
         {
             // try to recursively execute all job actions
             if (action == null)
                 return;
 
             // prepare pipeline local options
-            foreach (var opt in context.Job.Options)
+            foreach (var opt in parentContext.Job.Options)
             {
                 if (!action.HasOption (opt.Key))
                     action.Options.Add (opt.Key, opt.Value);
             }
 
             // current action
-            if (!ExecuteAction (new SessionContext (context), action, context))
+            var currentContext = new SessionContext (parentContext);
+            if (!ExecuteAction (currentContext, action, parentContext))
                 return;
 
-            context.FinalizeAction (action.Actions == null || action.Actions.Count == 0);
+            parentContext.FinalizeAction (action.Actions == null || action.Actions.Count == 0);
 
             // next actions
             if (action.Actions != null)
             {
                 foreach (var nextAction in action.Actions)
                 {
-                    ExecuteAllJobAction (context, nextAction);
+                    ExecuteAllJobAction (currentContext, nextAction);
                 }
             }            
         }
@@ -270,42 +264,42 @@ namespace BigDataPipeline.Core
 
             // create logging output
             var logWriter = PipelineService.Instance.GetActionLoggerStorage ();
-            var jobLogger = new ActionLogger (context.Job, action, logWriter, context.Options.Get ("actionLogLevel", systemOptions.Get("logLevel", ActionLogLevel.Info)), context.Options.Get ("actionLogStackTrace", false));
+            var jobLogger = new ActionLogger (context.Job, action, context.Origin, logWriter, context.Options.Get ("actionLogLevel", systemOptions.Get("logLevel", ActionLogLevel.Info)), context.Options.Get ("actionLogStackTrace", false));
             context.SetLogger (jobLogger);
 
             // create module instance
-            IActionModule plugin = null;
+            IActionModule module = null;
             try
             {         
                 switch (action.Type)
                 {
                     case ModuleTypes.SystemModule:
                         {
-                            plugin = PluginContainer.GetInstance<ISystemModule> (action.Module);
+                            module = ModuleContainer.Instance.GetInstance<ISystemModule> (action.Module);
                             break;
                         }
                     case ModuleTypes.ActionModule:
                     default:
                         {
-                            plugin = PluginContainer.GetInstance<IActionModule> (action.Module);
+                            module = ModuleContainer.Instance.GetInstance<IActionModule> (action.Module);
                             break;
                         }
                 }
 
                 // sanity check
-                if (plugin == null)
+                if (module == null)
                     throw new Exception (String.Format ("Action {0} not found", action.Module ?? "[empty]"));
 
                 // special preparation
                 if (action.Type == ModuleTypes.SystemModule)
-                    ((ISystemModule)plugin).SetSystemParameters (_storage);
+                    ((ISystemModule)module).SetSystemParameters (_storage);
 
                 // prepare options
                 // options priority: action > job > system
                 context.Options = context.Options ?? new FlexibleObject ();                
                 if (systemOptions != null)
                 {
-                    foreach (var p in plugin.GetParameterDetails ())
+                    foreach (var p in module.GetParameterDetails ())
                     {
                         context.Options.Set (p.Name, systemOptions.Get (p.Name, ""));
                     }
@@ -341,7 +335,7 @@ namespace BigDataPipeline.Core
                     context.SetInputStreams (new RecordCollection (previousActionContext.GetEmitedItems ()));
 
                 // execute
-                result = plugin.Execute (context);
+                result = module.Execute (context);
                 
                 // check result
                 if (!result)
@@ -360,11 +354,11 @@ namespace BigDataPipeline.Core
             }
             
             // clean up
-            if (plugin != null)
+            if (module != null)
             {
                 try
                 {
-                    plugin = null;   
+                    module = null;   
                 }
                 catch (Exception ex)
                 {

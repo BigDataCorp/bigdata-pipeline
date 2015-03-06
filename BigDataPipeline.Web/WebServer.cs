@@ -62,7 +62,7 @@ namespace BigDataPipeline.Web
             }
         }
 
-        public static Type[] GetWebPluginTypes ()
+        public static Type[] GetWebModulesTypes ()
         {
             return new Type[] { typeof (NancyModule) };   
         }

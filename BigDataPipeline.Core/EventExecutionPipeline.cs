@@ -79,7 +79,7 @@ namespace BigDataPipeline.Core
                         {
                             Id = job.Id,
                             Job = job,
-                            Origin = JobExecutionOrigin.EventHandler
+                            Origin = TaskOrigin.EventHandler
                         });
                     }
                 }
@@ -88,7 +88,7 @@ namespace BigDataPipeline.Core
             // update event list
             if (localEvents != null)
             {
-                _updateBuffer[job.Domain ?? ""] = localEvents;                
+                _updateBuffer[job.Group ?? ""] = localEvents;                
             }
         }
 
@@ -125,7 +125,7 @@ namespace BigDataPipeline.Core
                 if (currentJob != null)
                 {
                     Dictionary<string, List<SessionContext>> evts;
-                    if (_handlers.TryGetValue (currentJob.Domain ?? "", out evts))
+                    if (_handlers.TryGetValue (currentJob.Group ?? "", out evts))
                         evts.TryGetValue (key, out list);
                 }
             }
@@ -149,6 +149,7 @@ namespace BigDataPipeline.Core
                         Origin = i.Origin,
                         Start = DateTime.UtcNow
                     };
+                    // TODO: this event is bronken
                     ctx.Emit (eventData);
                     ctx.FinalizeAction ();
                     TaskExecutionPipeline.Instance.TryAddTask (ctx);

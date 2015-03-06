@@ -51,6 +51,7 @@
     <Compile Include="IActionLogger.cs" />
     <Compile Include="ActionLogEvent.cs" />
     <Compile Include="Extensions\CommonExtensions.cs" />
+    <Compile Include="IModuleContainer.cs" />
     <Compile Include="ISessionContext.cs" />
     <Compile Include="Models\FlexibleObject.cs" />
     <Compile Include="Modules\IActionModule.cs" />

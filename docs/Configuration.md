@@ -26,7 +26,6 @@ Default value: `Info`
 * Trace
 * Debug
 * Info
-* Success
 * Warn
 * Error
 * Fatal
@@ -152,8 +151,8 @@ Default value: `Info`
 * Trace
 * Debug
 * Info
-* Success
 * Warn
+* Success
 * Error
 * Fatal
 

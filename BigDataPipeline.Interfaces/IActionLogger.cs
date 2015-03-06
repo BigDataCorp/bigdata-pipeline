@@ -5,7 +5,7 @@ namespace BigDataPipeline.Interfaces
     /// <summary>
     /// Possible action logging levels
     /// </summary>
-    public enum ActionLogLevel { Trace = 0, Debug, Info, Success, Warn, Error, Fatal }
+    public enum ActionLogLevel { Trace = 0, Debug, Info, Warn, Success, Error, Fatal }
 
     /// <summary>
     /// Interface for logging events in a pipeline job or task

@@ -36,7 +36,7 @@ namespace BigDataPipeline
         /// <summary>
         /// Domain owner of this job.
         /// </summary>
-        public string Domain { get; set; }
+        public string Group { get; set; }
 
         /// <summary>
         /// Description and comments associated with this job.
@@ -237,7 +237,7 @@ namespace BigDataPipeline
 //    Scheduler: [],
 //    Events: [],
 //    RootAction: {
-//        PluginId: "",
+//        Module: "",
 //        ConfigurationOptions: {},
 //        Actions: []
 //    }

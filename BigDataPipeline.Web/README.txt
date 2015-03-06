@@ -1,10 +1,10 @@
 ﻿
-plugin package structure fof a zip file
+modules package structure fof a zip file
 [zip]
 ./
 ./web/content
 ./web/view
 
-Nancy conventions for plugin UI
-./site/plugin/[name of the plugin]/content
-./site/plugin/[name of the plugin]/view
+Nancy conventions for modules UI
+./site/modules/[name of the module]/content
+./site/modules/[name of the module]/view

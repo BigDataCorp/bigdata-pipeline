@@ -247,14 +247,12 @@ namespace BigDataPipeline.Interfaces
                 // else, use a type convertion with InvariantCulture (faster)
                 if (typeConvertible.IsAssignableFrom (type) && typeConvertible.IsAssignableFrom (desiredType))
                     return (T)Convert.ChangeType (v, desiredType, System.Globalization.CultureInfo.InvariantCulture);
-                // finally simply fallback to json.net deserialization
-                return Newtonsoft.Json.JsonConvert.DeserializeObject<T> (Newtonsoft.Json.JsonConvert.SerializeObject (v));
-                //return defaultValue;
+                
+                // well... if we got here, there is no reasonable cast possible...                
             }
-            catch
-            {
-                return defaultValue;
-            }
+            catch { /* ignore and return default value */ }
+
+            return defaultValue;            
         }
 
         public void Clear ()

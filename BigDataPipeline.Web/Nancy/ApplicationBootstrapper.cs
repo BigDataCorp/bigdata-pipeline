@@ -14,7 +14,7 @@ namespace BigDataPipeline.Web
     {
         static NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger ();
         static Tuple<string, decimal>[] DefaultEmptyHeader = new[] { Tuple.Create ("application/json", 1.0m), Tuple.Create ("text/html", 0.9m), Tuple.Create ("*/*", 0.8m) };
-        static Dictionary<string, string> pluginViews = new Dictionary<string, string> (StringComparer.OrdinalIgnoreCase);
+        static Dictionary<string, string> moduleViews = new Dictionary<string, string> (StringComparer.OrdinalIgnoreCase);
         static IUserMapper accessControlContext = null;        
 
         protected override void ConfigureConventions (Nancy.Conventions.NancyConventions nancyConventions)
@@ -34,20 +34,20 @@ namespace BigDataPipeline.Web
                 return acceptHeaders;
             });
 
-            // add content folder for plugin, following the convention
-            // ./plugins/[foldername of the plugin]/assets
-            // ./plugins/[foldername of the plugin]/views
+            // add content folder for modules, following the convention
+            // ./modules/[foldername of the modules]/assets
+            // ./modules/[foldername of the modules]/views
             
             var root = this.RootPathProvider.GetRootPath ();
-            var pluginRoot = System.IO.Path.Combine (root, "plugins");
-            if (System.IO.Directory.Exists (pluginRoot))
+            var modulesRoot = System.IO.Path.Combine (root, "modules");
+            if (System.IO.Directory.Exists (modulesRoot))
             {
-                foreach (var d in System.IO.Directory.GetDirectories (pluginRoot, "*", System.IO.SearchOption.AllDirectories))
+                foreach (var d in System.IO.Directory.GetDirectories (modulesRoot, "*", System.IO.SearchOption.AllDirectories))
                 {
                     var name = GetLastPathPart (d);
                     if (name.Equals ("assets", StringComparison.OrdinalIgnoreCase))
                     {
-                        var a = PrepareFilePath (d.Substring (pluginRoot.Length)).Split('/');
+                        var a = PrepareFilePath (d.Substring (modulesRoot.Length)).Split('/');
                         nancyConventions.StaticContentsConventions.Add (Nancy.Conventions.StaticContentConventionBuilder.AddDirectory (String.Join ("/", a), PrepareFilePath (d.Substring (root.Length))));
                     }
                     else if (name.Equals ("views", StringComparison.OrdinalIgnoreCase))
@@ -58,7 +58,7 @@ namespace BigDataPipeline.Web
                             int i = view.LastIndexOf ('.');
                             if (i > 0)
                                 view = view.Remove (i);
-                            pluginViews[PrepareFilePath (view.Substring (d.Length))] = PrepareFilePath (view.Substring (root.Length));
+                            moduleViews[PrepareFilePath (view.Substring (d.Length))] = PrepareFilePath (view.Substring (root.Length));
                         }
                     }
                 }
@@ -77,11 +77,11 @@ namespace BigDataPipeline.Web
             this.Conventions.ViewLocationConventions.Add ((viewName, model, context) =>
             {
                 string p;
-                if (pluginViews.TryGetValue (context.ModuleName + "/" + viewName, out p))
+                if (moduleViews.TryGetValue (context.ModuleName + "/" + viewName, out p))
                     return p;
-                if (pluginViews.TryGetValue (viewName, out p))
+                if (moduleViews.TryGetValue (viewName, out p))
                     return p;
-                return string.Concat ("plugins/", context.ModulePath, "/Views/", viewName).Replace ("//", "/");
+                return string.Concat ("modules/", context.ModulePath, "/Views/", viewName).Replace ("//", "/");
             });
 
             base.ConfigureConventions (nancyConventions);

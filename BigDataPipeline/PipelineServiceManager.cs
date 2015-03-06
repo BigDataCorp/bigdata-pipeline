@@ -148,21 +148,21 @@ namespace BigDataPipeline
             foreach (var c in SimpleHelpers.ConfigManager.GetAll ())
                 opt.Set (c.Key, c.Value);
 
-            // prepare plugin and work areas
+            // prepare module location and work areas
             SimpleHelpers.ConfigManager.AddNonExistingKeys = true;
-            var pluginDir = prepareFilePath (SimpleHelpers.ConfigManager.Get ("workFolder", "${basedir}/plugins"));
+            var modulesDir = prepareFilePath (SimpleHelpers.ConfigManager.Get ("modulesFolder", "${basedir}/modules"));
             var workDir = prepareFilePath (SimpleHelpers.ConfigManager.Get ("workFolder", "${basedir}/work"));
             
-            (new System.IO.DirectoryInfo (pluginDir)).Create ();
+            (new System.IO.DirectoryInfo (modulesDir)).Create ();
             (new System.IO.DirectoryInfo (workDir)).Create ();
             
             bool enableWebInterface = SimpleHelpers.ConfigManager.Get<bool> ("webInterfaceEnabled", true);
 
             // initializes the service
             if (enableWebInterface)
-                service.Initialize (pluginDir, workDir, opt, BigDataPipeline.Web.WebServer.GetWebPluginTypes ());
+                service.Initialize (modulesDir, workDir, opt, BigDataPipeline.Web.WebServer.GetWebModulesTypes ());
             else
-                service.Initialize (pluginDir, workDir, opt);
+                service.Initialize (modulesDir, workDir, opt);
 
             // initialize web interface (self host)
             if (enableWebInterface)
@@ -213,11 +213,13 @@ namespace BigDataPipeline
         /// <remarks>This may be called multiple times, so adjust in accordance</remarks>
         private bool Execute ()
         {
+            const int MaxLockRetries = 5;
+
             // check if a previous job was executing
             if (System.Threading.Interlocked.Increment(ref _running) > 1)
             {
-                _logger.Warn ("Operation already running, delaying executing for one more pass.");
-                if (_running > 6)
+                _logger.Warn ("Operation already running, delaying executing {0}/{1}.", (_running - 1), MaxLockRetries);
+                if (_running > MaxLockRetries)
                 {
                     // disable so to force next pass execution 
                     _running = 0;

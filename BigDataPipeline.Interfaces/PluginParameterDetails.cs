@@ -5,7 +5,7 @@ using System.Text;
 
 namespace BigDataPipeline.Interfaces
 {
-    public class PluginParameterDetails
+    public class ModuleParameterDetails
     {
         public string Name { get; set; }
         
@@ -19,11 +19,11 @@ namespace BigDataPipeline.Interfaces
 
         public bool IsRequired { get; set; }
 
-        public PluginParameterDetails ()
+        public ModuleParameterDetails ()
         {
         }
 
-        public PluginParameterDetails (string name, string type, string description, bool isRequired = false)
+        public ModuleParameterDetails (string name, string type, string description, bool isRequired = false)
         {
             Name = name;
             Type = type;
@@ -32,12 +32,12 @@ namespace BigDataPipeline.Interfaces
             SetDefaultTypeOptions ();
         }
 
-        public PluginParameterDetails (string name, Type type, string description, bool required = false) :
+        public ModuleParameterDetails (string name, Type type, string description, bool required = false) :
             this (name, type.Name, description, required)
         {            
         }
 
-        public PluginParameterDetails SetOptions (params string[] values)
+        public ModuleParameterDetails SetOptions (params string[] values)
         {
             Options = new List<string> (values);
             return this;

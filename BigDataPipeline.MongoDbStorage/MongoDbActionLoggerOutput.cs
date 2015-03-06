@@ -13,10 +13,10 @@ namespace BigDataPipeline.Mongo
     /// </summary>
     public class MongoDbActionLoggerOutput : IActionLogStorage
     {
-        public IEnumerable<PluginParameterDetails> GetParameterDetails ()
+        public IEnumerable<ModuleParameterDetails> GetParameterDetails ()
         {
-            yield return new PluginParameterDetails ("actionLoggerConnectionString", typeof (string), "mongodb://[username:password@]host1[:port1][,host2[:port2],...[,hostN[:portN]]][/[database][?options]]", true);
-            yield return new PluginParameterDetails ("actionLoggerDatabaseName", typeof (string), "Name of the database for the pipeline collections. Defaults to BigdataPipeline", false);
+            yield return new ModuleParameterDetails ("actionLoggerConnectionString", typeof (string), "mongodb://[username:password@]host1[:port1][,host2[:port2],...[,hostN[:portN]]][/[database][?options]]", true);
+            yield return new ModuleParameterDetails ("actionLoggerDatabaseName", typeof (string), "Name of the database for the pipeline collections. Defaults to BigdataPipeline", false);
         }
 
         static MongoDatabase _db;

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace BigDataPipeline.Interfaces
 {
-    public enum JobExecutionOrigin
+    public enum TaskOrigin
     {
         Scheduller,
         Request,
@@ -35,7 +35,7 @@ namespace BigDataPipeline.Interfaces
         /// How this action was fired.
         /// </summary>
         /// <value>The mode.</value>
-        JobExecutionOrigin Origin { get; set; }
+        TaskOrigin Origin { get; set; }
 
         /// <summary>
         /// Context execution options.
@@ -60,6 +60,12 @@ namespace BigDataPipeline.Interfaces
         /// </summary>
         /// <returns></returns>
         IActionLogger GetLogger ();
+
+        /// <summary>
+        /// Gets the module container.
+        /// </summary>
+        /// <returns></returns>
+        IModuleContainer GetContainer ();
                 
         /// <summary>
         /// Emits the specified item.

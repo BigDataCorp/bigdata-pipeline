@@ -6,7 +6,7 @@ namespace BigDataPipeline.Core.Interfaces
 {
     public interface IStorageModule : IDisposable
     {
-        IEnumerable<PluginParameterDetails> GetParameterDetails ();
+        IEnumerable<ModuleParameterDetails> GetParameterDetails ();
 
         void Initialize (Record systemOptions);
 

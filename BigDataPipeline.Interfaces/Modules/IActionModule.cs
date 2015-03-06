@@ -8,7 +8,7 @@ namespace BigDataPipeline.Interfaces
     public interface IActionModule
     {
         /// <summary>
-        /// the description of the plugin.
+        /// the description of the module.
         /// </summary>
         string GetDescription ();
 
@@ -17,7 +17,7 @@ namespace BigDataPipeline.Interfaces
         /// also contains the description of each of this module parameters.
         /// </summary>
         /// <returns>List of parameters details</returns>
-        IEnumerable<PluginParameterDetails> GetParameterDetails ();
+        IEnumerable<ModuleParameterDetails> GetParameterDetails ();
         
         /// <summary>
         /// Executes the specified context.

@@ -44,7 +44,7 @@ namespace BigDataPipeline.Core
         /// How this action was fired.
         /// </summary>
         /// <value>The mode.</value>
-        public JobExecutionOrigin Origin { get; set; }
+        public TaskOrigin Origin { get; set; }
 
         /// <summary>
         /// Context execution options.
@@ -91,6 +91,11 @@ namespace BigDataPipeline.Core
             return _logger;
         }
 
+        public IModuleContainer GetContainer ()
+        {
+            return ModuleContainer.Instance;
+        }
+
         RecordCollection[] _inputStreams;
 
         public void SetInputStreams (params RecordCollection[] inputStreams)
@@ -127,12 +132,14 @@ namespace BigDataPipeline.Core
             {
                 Job = new PipelineJob
                 {
-                    Name = "EmitedTask",
+                    Id = Job.Id,
+                    Name = Job.Name,
+                    Group = Job.Group,
                     Enabled = true,
                     RootAction = task
                 },
                 Start = DateTime.UtcNow.Add (delay ?? TimeSpan.Zero),
-                Origin = JobExecutionOrigin.EmitedTask
+                Origin = TaskOrigin.EmitedTask
             });
         }
 

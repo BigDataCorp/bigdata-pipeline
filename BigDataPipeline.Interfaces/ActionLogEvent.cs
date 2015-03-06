@@ -8,9 +8,13 @@ namespace BigDataPipeline.Interfaces
 
         public DateTime Date { get; set; }
 
+        public string Origin { get; set; }
+
         public string JobId { get; set; }
 
         public string Job { get; set; }
+
+        public string Group { get; set; }
 
         public string Module { get; set; }
 
@@ -25,13 +29,15 @@ namespace BigDataPipeline.Interfaces
             Date = DateTime.UtcNow;
         }
 
-        public ActionLogEvent (string jobId, string job, string module, ActionLogLevel level, string message, string exception)
-            : this ()
+        public ActionLogEvent (PipelineJob job, ActionDetails action, string origin, ActionLogLevel level, string message, string exception)
         {
-            Job = job;
-            JobId = jobId;
-            Level = level.ToString();
-            Module = module;
+            Date = DateTime.UtcNow;
+            JobId = job.Id;
+            Job = job.Name;            
+            Group = job.Group;
+            Module = action.Module;
+            Origin = origin;
+            Level = level.ToString ();            
             Message = message;
             Exception = exception;
         }
