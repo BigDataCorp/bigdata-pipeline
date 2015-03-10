@@ -165,8 +165,21 @@ namespace BigDataPipeline.Core
                     // dynamic assemblies don't have GetExportedTypes method
                     if (a.IsDynamic)
                         continue;
+                    
+                    // try to list public types
+                    // only .net 4.5+ has this method implemented!
+                    Type[] types = null;
+                    try
+                    {
+                        types = a.GetExportedTypes ();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Warn (ex);
+                    }
+
                     // search for types derived from desired types list (listOfInterfaces)
-                    foreach (var t in a.GetExportedTypes ())
+                    foreach (var t in types)
                     {
                         if (t == null || t.IsAbstract || t.IsGenericTypeDefinition || t.IsInterface)
                             continue;
