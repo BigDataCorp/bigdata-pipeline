@@ -23,7 +23,6 @@ namespace BigDataPipeline.Interfaces
         /// Executes the specified context.
         /// </summary>
         /// <param name="context">The context.</param>
-        /// <param name="dataStreams">The data streams.</param>
         /// <returns></returns>
         bool Execute (ISessionContext context);
 

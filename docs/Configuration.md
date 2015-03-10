@@ -75,10 +75,10 @@ If the server should tolerate and ignore external file configuration load or par
 Default value: `${basedir}/work`
 
 
-### pluginFolder
-`pluginFolder=<string>`
+### modulesFolder
+`modulesFolder=<string>`
 
-Default value: `${basedir}/plugins`
+Default value: `${basedir}/modules`
 
 
 ### accessControlModule

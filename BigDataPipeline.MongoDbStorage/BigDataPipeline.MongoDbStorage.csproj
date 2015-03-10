@@ -7,7 +7,7 @@
     <ProjectGuid>{4D449D9B-6E4F-4480-BD64-1BA26EF6917D}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>BigDataPipeline.MongoDbStorage</RootNamespace>
+    <RootNamespace>BigDataPipeline.Mongo</RootNamespace>
     <AssemblyName>BigDataPipeline.MongoDbStorage</AssemblyName>
     <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -70,7 +70,7 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>
-xcopy /E /Y /Q /r "$(TargetDir)*.dll" "$(SolutionDir)BigDataPipeline\$(OutDir)\plugins\MongoDbStorage\"</PostBuildEvent>
+xcopy /E /Y /Q /r "$(TargetDir)*.dll" "$(SolutionDir)BigDataPipeline\$(OutDir)\modules\MongoDbStorage\"</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

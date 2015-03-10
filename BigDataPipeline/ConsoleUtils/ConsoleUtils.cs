@@ -201,7 +201,7 @@ namespace BigDataPipeline
                     foreach (var file in externalConfigFile.Trim(' ', '\'', '"', '[', ']').Split (',', ';'))
                     {
                         LogManager.GetCurrentClassLogger ().Info ("Loading configuration file from {0} ...", externalConfigFile);
-                        externalLoadedOptions = FlexibleOptions.Merge (externalLoadedOptions, LoadWebConfigurationFile (file.Trim (' ', '\'', '"'), configAbortOnError));
+                        externalLoadedOptions = FlexibleOptions.Merge (externalLoadedOptions, LoadExtenalConfigurationFile (file.Trim (' ', '\'', '"'), configAbortOnError));
                     }
                 }
             }

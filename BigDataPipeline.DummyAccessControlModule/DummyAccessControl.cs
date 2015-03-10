@@ -17,24 +17,24 @@ namespace BigDataPipeline.DummyAccessControlModule
             {
                 UserName = "admin",
                 Password = "password",
-                Guid = new Guid ("55E1E49E-B7E8-4EEA-8459-7A906AC4D4C0")
+                SessionId = "55E1E49E-B7E8-4EEA-8459-7A906AC4D4C0"
             }));
         }
 
-        public FlexibleObject GetUserFromIdentifier (Guid identifier)
+        public FlexibleObject GetUserFromIdentifier (string sessionId)
         {
-            var userRecord = users.Where (u => u.Guid == identifier).FirstOrDefault ();
+            var userRecord = users.Where (u => u.SessionId == sessionId).FirstOrDefault ();
             return userRecord == null ? null : new FlexibleObject ().Set ("UserName", userRecord.UserName);
         }
 
-        public Guid? ValidateUser (string username, string password)
+        public string ValidateUser (string username, string password)
         {
             var userRecord = users.Where (u => u.UserName.Equals (username, StringComparison.OrdinalIgnoreCase) && u.Password == password).FirstOrDefault ();
 
             if (userRecord == null)
                 return null;
 
-            return userRecord.Guid;
+            return userRecord.SessionId;
         }
     }
 
@@ -42,6 +42,6 @@ namespace BigDataPipeline.DummyAccessControlModule
     {
         public string UserName { get; set;  }
         public string Password { get; set; }
-        public Guid Guid { get; set; }
+        public string SessionId { get; set; }
     }
 }

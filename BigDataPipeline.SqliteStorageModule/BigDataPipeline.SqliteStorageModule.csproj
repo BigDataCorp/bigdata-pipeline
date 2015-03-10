@@ -70,7 +70,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy /E /Y /Q /r "$(TargetDir)*.dll" "$(SolutionDir)BigDataPipeline\$(OutDir)\plugins\SqliteStorage\"</PostBuildEvent>
+    <PostBuildEvent>xcopy /E /Y /Q /r "$(TargetDir)*.dll" "$(SolutionDir)BigDataPipeline\$(OutDir)\modules\SqliteStorage\"</PostBuildEvent>
   </PropertyGroup>
   <Import Project="..\packages\System.Data.SQLite.Core.1.0.96.0\build\net451\System.Data.SQLite.Core.targets" Condition="Exists('..\packages\System.Data.SQLite.Core.1.0.96.0\build\net451\System.Data.SQLite.Core.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

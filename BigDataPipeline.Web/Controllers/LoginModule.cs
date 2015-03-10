@@ -41,16 +41,19 @@ namespace BigDataPipeline.Web.site.Controllers
             if (ac == null)
                 return Response.AsJson (new QueryResponse (true));
 
-            var guid = ac.ValidateUser (username, password);
-            if (guid.HasValue)
+            var session = ac.ValidateUser (username, password);
+            if (!String.IsNullOrEmpty (session))
             {
                 var response = Response.AsJson (new QueryResponse (true));
 
                 // prepare login cookie authentication
-                var authResponse = this.LoginWithoutRedirect (guid.Value, DateTime.UtcNow.AddDays (14));                
-                foreach (var c in authResponse.Cookies)
-                    response.Cookies.Add (c);
-
+                Guid guid;
+                if (Guid.TryParse (session, out guid))
+                {
+                    var authResponse = this.LoginWithoutRedirect (guid, DateTime.UtcNow.AddDays (14));                
+                    foreach (var c in authResponse.Cookies)
+                        response.Cookies.Add (c);
+                }
                 return response;
             }
 

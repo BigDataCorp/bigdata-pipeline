@@ -7,8 +7,8 @@ namespace BigDataPipeline.Core.Interfaces
     {
         void Initialize (Record systemOptions);
 
-        FlexibleObject GetUserFromIdentifier (Guid identifier);
+        FlexibleObject GetUserFromIdentifier (string identifier);
 
-        Guid? ValidateUser (string username, string password);
+        string ValidateUser (string username, string password);
     }
 }
