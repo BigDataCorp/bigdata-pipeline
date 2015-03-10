@@ -23,7 +23,7 @@ namespace BigDataPipeline.DummyAccessControlModule
 
         public FlexibleObject GetUserFromIdentifier (string sessionId)
         {
-            var userRecord = users.Where (u => u.SessionId == sessionId).FirstOrDefault ();
+            var userRecord = users.Where (u => u.SessionId.Equals (sessionId, StringComparison.OrdinalIgnoreCase)).FirstOrDefault ();
             return userRecord == null ? null : new FlexibleObject ().Set ("UserName", userRecord.UserName);
         }
 
