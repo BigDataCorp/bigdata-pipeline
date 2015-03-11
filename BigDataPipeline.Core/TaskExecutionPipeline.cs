@@ -332,7 +332,7 @@ namespace BigDataPipeline.Core
 
                 // check for input streams
                 if (previousActionContext != null && previousActionContext.HasEmitedItems ())
-                    context.SetInputStreams (new RecordCollection (previousActionContext.GetEmitedItems ()));
+                    context.SetInputStream (new RecordCollection (previousActionContext.GetEmitedItems ()));
 
                 // execute
                 result = module.Execute (context);

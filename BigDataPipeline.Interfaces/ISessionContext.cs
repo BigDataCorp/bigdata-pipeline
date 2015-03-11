@@ -53,7 +53,7 @@ namespace BigDataPipeline.Interfaces
         /// Gets the input streams.
         /// </summary>
         /// <returns></returns>
-        RecordCollection[] GetInputStreams ();
+        RecordCollection GetInputStreams ();
 
         /// <summary>
         /// Gets the logger.

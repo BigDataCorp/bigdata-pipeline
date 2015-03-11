@@ -147,7 +147,7 @@ namespace BigDataPipeline
 
             var option_set = new Mono.Options.OptionSet ();
             option_set.Add ("?|help|h", "Prints out the options.", opt => show_help (opt, option_set))
-                .Add ("logFilename=", "Log filename. Default value is: " + "${basedir}/log/" + typeof (Program).Namespace + ".log", opt => argsOptions.Set ("WebConfigurationFile", opt))
+                .Add ("logFilename=", "Log filename. Default value is: " + "${basedir}/log/" + typeof (Program).Namespace + ".log", opt => argsOptions.Set ("logFilename", opt))
                 .Add ("logLevel=", "Log level (Fatal, Error, Warn, Info, Debug, Trace, Off). Default value is Info", opt => argsOptions.Set ("logLevel", opt))
                 .Add ("config=|webConfigurationFile=|S3ConfigurationPath=", "Address to a downloadable configuration file with json configuration options (default=[empty]).", opt => argsOptions.Set ("config", opt));
 

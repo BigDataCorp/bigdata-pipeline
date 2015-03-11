@@ -96,16 +96,16 @@ namespace BigDataPipeline.Core
             return ModuleContainer.Instance;
         }
 
-        RecordCollection[] _inputStreams;
+        RecordCollection _inputStream;
 
-        public void SetInputStreams (params RecordCollection[] inputStreams)
+        public void SetInputStream (RecordCollection inputStreams)
         {
-            _inputStreams = inputStreams;
+            _inputStream = inputStreams;
         }
 
-        public RecordCollection[] GetInputStreams ()
+        public RecordCollection GetInputStreams ()
         {
-            return _inputStreams;
+            return _inputStream;
         }
 
 

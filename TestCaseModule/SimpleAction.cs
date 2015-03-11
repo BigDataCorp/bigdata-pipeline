@@ -23,11 +23,10 @@ namespace TestCaseModule
         {
             var log = context.GetLogger ();
 
-            var inputStreams = context.GetInputStreams ();
-            var stream = inputStreams != null ? inputStreams.FirstOrDefault () : null;
-            log.Info (stream != null ? "Stream found!!!" : "Stream not found");
+            var inputStream = context.GetInputStreams ();
+            log.Info (inputStream != null ? "Stream found!!!" : "Stream not found");
 
-            Record inputData = stream != null ? stream.FirstOrDefault () : new Record ();
+            Record inputData = inputStream != null ? inputStream.FirstOrDefault () : new Record ();
                       
             string kind = inputData.Get ("kind", "<empty>");
             log.Info ("kind = " + kind);
