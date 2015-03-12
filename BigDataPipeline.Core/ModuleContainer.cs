@@ -77,8 +77,8 @@ namespace BigDataPipeline.Core
                 modulesFolder = new string[] { Path.Combine (baseAddress, "modules") };
             
             // initialize
-            foreach (var t in listOfInterfaces)
-                exportedTypesByBaseType[t.Name] = new List<Type> ();
+            for (int i = 0; i < listOfInterfaces.Length; i++)
+                exportedTypesByBaseType[listOfInterfaces[i].Name] = new List<Type> ();
 
             // get mscorelib assembly
             Assembly mscorelib = 333.GetType ().Assembly;
@@ -179,8 +179,9 @@ namespace BigDataPipeline.Core
                     }
 
                     // search for types derived from desired types list (listOfInterfaces)
-                    foreach (var t in types)
+                    for (int i = 0; i < types.Length; i++)
                     {
+                        var t = types[i];
                         if (t == null || t.IsAbstract || t.IsGenericTypeDefinition || t.IsInterface)
                             continue;
                         for (int j = 0; j < listOfInterfaces.Length; j++)

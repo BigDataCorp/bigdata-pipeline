@@ -108,10 +108,13 @@ namespace BigDataPipeline
                         return (T)Convert.ChangeType (v, typeof (T), System.Globalization.CultureInfo.InvariantCulture);
                     }
                     // more comprehensive datetime parser, except formats like "\"\\/Date(1335205592410-0500)\\/\""
-                    else if ((desiredType == typeof (DateTime) || desiredType == typeof (DateTime?)) && v.IndexOf ('(', 4, 10) < 0)
+                    else if (desiredType == typeof (DateTime) || desiredType == typeof (DateTime?))
                     {
                         DateTime dt;
-                        if (DateTime.TryParse (missingQuotes ? v : v.Substring (1, v.Length - 2), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out dt))
+                        var vDt = missingQuotes ? v : v.Substring (1, v.Length - 2);
+                        if (DateTime.TryParse (vDt, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out dt))
+                            return (T)(object)dt;
+                        if (vDt.Length == 8 && DateTime.TryParseExact (vDt, "yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out dt))
                             return (T)(object)dt;
                         return Newtonsoft.Json.JsonConvert.DeserializeObject<T> (v);
                     }
