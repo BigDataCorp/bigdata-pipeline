@@ -184,6 +184,8 @@ namespace BigDataPipeline
             {
                 DisplayPageOnBrowser ();
             }
+
+            //_logger.Warn (Newtonsoft.Json.JsonConvert.SerializeObject (AppDomain.CurrentDomain.GetAssemblies ().Where (a => (!a.GlobalAssemblyCache && !a.IsDynamic)).Select (i => i.FullName), Newtonsoft.Json.Formatting.Indented));
         }
 
         /// <summary>

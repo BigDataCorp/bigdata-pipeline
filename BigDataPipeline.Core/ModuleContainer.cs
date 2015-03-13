@@ -1,6 +1,7 @@
 ﻿using BigDataPipeline.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
@@ -14,11 +15,14 @@ namespace BigDataPipeline.Core
      
         object padlock = new object ();
 
+        HashSet<string> blackListedAssemblies = new HashSet<string> (StringComparer.OrdinalIgnoreCase) { "mscorlib", "vshost", "BigDataPipeline", "NLog", "Newtonsoft.Json", "Topshelf", "Topshelf.Linux", "Topshelf.NLog", "BigDataPipeline.Web", "Nancy", "AWSSDK", "Dapper", "Mono.CSharp", "Mono.Security", "NCrontab", "Renci.SshNet", "System.Net.FtpClient", "MongoDB.Bson", "MongoDB.Driver", "System.Data.SQLite", "System.Net.Http.Formatting", "System.Web.Razor", "Microsoft.Owin.Hosting", "Microsoft.Owin", "Owin" };
+        
         Dictionary<string, List<Type>> exportedTypesByBaseType = new Dictionary<string, List<Type>> (StringComparer.Ordinal);
 
         Dictionary<string, Type> exportedTypes = new Dictionary<string, Type> (StringComparer.Ordinal);
 
         Dictionary<string, Assembly> loadedAssemblies = new Dictionary<string, Assembly> (StringComparer.Ordinal);
+        List<Assembly> validAssemblies = new List<Assembly> (30);
 
         Dictionary<string, InstanceFactory> exportedFactories = new Dictionary<string, InstanceFactory> (StringComparer.Ordinal);
 
@@ -75,25 +79,33 @@ namespace BigDataPipeline.Core
             // prepare extension folder
             if (modulesFolder == null || modulesFolder.Length == 0 || (modulesFolder.Length == 1 && String.IsNullOrEmpty (modulesFolder[0])))
                 modulesFolder = new string[] { Path.Combine (baseAddress, "modules") };
-            
-            // initialize
+
+            // prepare list of loaded interfaces
             for (int i = 0; i < listOfInterfaces.Length; i++)
-                exportedTypesByBaseType[listOfInterfaces[i].Name] = new List<Type> ();
-
-            // get mscorelib assembly
-            Assembly mscorelib = 333.GetType ().Assembly;
-
-            // load current assemblies code to register their types and avoid duplicity
-            foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
             {
-                if (!a.GlobalAssemblyCache && !a.IsDynamic && a != mscorelib)
-                {
-                    loadedAssemblies[a.FullName] = a;                    
-                }
+                if (!exportedTypesByBaseType.ContainsKey (listOfInterfaces[i].Name))
+                    exportedTypesByBaseType.Add (listOfInterfaces[i].Name, new List<Type> ()); 
             }
 
-            // register assembly resolution for our loaded modules
-            AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
+            // get mscorelib assembly
+            //Assembly mscorelib = 333.GetType ().Assembly;
+
+            // load current assemblies code to register their types and avoid duplicity
+            if (loadedAssemblies.Count == 0)
+            {
+                foreach (var a in AppDomain.CurrentDomain.GetAssemblies ())
+                {
+                    if (!a.GlobalAssemblyCache && !a.IsDynamic)
+                    {
+                        loadedAssemblies[a.FullName] = a;
+                        if (!blackListedAssemblies.Contains (ParseAssemblyName (a.FullName)))
+                            validAssemblies.Add (a);
+                    }
+                }
+
+                // register assembly resolution for our loaded modules
+                AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
+            }
 
             var ignoredAssemblies = new Dictionary<string,string> (StringComparer.Ordinal);
 
@@ -103,52 +115,53 @@ namespace BigDataPipeline.Core
                 var directoryInfo = new DirectoryInfo (folder);
                 if (!directoryInfo.Exists)
                 {
-                    directoryInfo.Create ();
-                    directoryInfo.Refresh ();
+                    continue;
                 }
             
                 // read all files in modules folder, looking for assemblies
                 // let's read all files, since linux use case sensitive search wich could lead
                 // to case problems like ".dll" and ".Dll"            
-                foreach (var f in directoryInfo.EnumerateFiles ("*", SearchOption.AllDirectories))
+                foreach (var file in directoryInfo.EnumerateFiles ("*", SearchOption.AllDirectories))
                 {
                     // check if file has a valid assembly extension
-                    if (!f.Extension.EndsWith (".dll", StringComparison.OrdinalIgnoreCase) &&
-                        !f.Extension.EndsWith (".exe", StringComparison.OrdinalIgnoreCase))
+                    if (!file.Extension.EndsWith (".dll", StringComparison.OrdinalIgnoreCase) &&
+                        !file.Extension.EndsWith (".exe", StringComparison.OrdinalIgnoreCase))
                         continue;
                     // try to avoid loading dlls with native code
-                    if (f.FullName.IndexOf ("x86", StringComparison.OrdinalIgnoreCase) > 0 ||
-                        f.FullName.IndexOf ("x64", StringComparison.OrdinalIgnoreCase) > 0 ||
-                        f.FullName.IndexOf ("interop", StringComparison.OrdinalIgnoreCase) > 0)
+                    if (file.FullName.IndexOf ("x86", StringComparison.OrdinalIgnoreCase) > 0 ||
+                        file.FullName.IndexOf ("x64", StringComparison.OrdinalIgnoreCase) > 0 ||
+                        file.FullName.IndexOf ("interop", StringComparison.OrdinalIgnoreCase) > 0)
                         continue;
 
                     // try to get assembly full name: "Assembly text name, Version, Culture, PublicKeyToken"
                     // lets ignore it if we are unable to load it (access denied, invalid assembly or native code, etc...)
-                    if (ignoredAssemblies.ContainsKey (f.Name))
+                    if (ignoredAssemblies.ContainsKey (file.Name))
                         continue;
-                    string fullName = null;
+                    string assemblyName = null;
                     try
                     { 
-                        fullName = AssemblyName.GetAssemblyName (f.FullName).FullName;
+                        assemblyName = AssemblyName.GetAssemblyName (file.FullName).FullName;
                     }
                     catch (Exception ex) 
                     {
-                        ignoredAssemblies[f.Name] = ex.GetType ().Name + ", location: " + f.FullName.Replace (baseAddress, "./").Replace ('\\', '/');
+                        ignoredAssemblies[file.Name] = ex.GetType ().Name + ", location: " + file.FullName.Replace (baseAddress, "./").Replace ('\\', '/');
                         continue;
                     }
 
                     // check if assembly was already loaded
-                    if (loadedAssemblies.ContainsKey (fullName)) 
+                    if (loadedAssemblies.ContainsKey (assemblyName)) 
                         continue;
 
                     // try to load assembly
                     try
                     { 
                         // load assembly
-                        var a = Assembly.LoadFile (f.FullName);
+                        var a = Assembly.LoadFile (file.FullName);
 
                         // register in our loaded assemblies lookup map for AppDomain.CurrentDomain.AssemblyResolve resolution
-                        loadedAssemblies.Add (a.FullName, a);
+                        loadedAssemblies.Add (assemblyName, a);
+                        if (!blackListedAssemblies.Contains (ParseAssemblyName (assemblyName)))
+                            validAssemblies.Add (a);
                     }
                     catch (Exception ex)
                     {
@@ -158,9 +171,25 @@ namespace BigDataPipeline.Core
             }
 
             // try to load derived types
+            SearchForImplementations (listOfInterfaces);
+            
+            // log initialization status
+            if (ignoredAssemblies.Count > 0)
+            {
+                _logger.Info ("Assemblies ignorados: " + Environment.NewLine + 
+                    "[" + 
+                    Environment.NewLine +
+                    String.Join ("," + Environment.NewLine, ignoredAssemblies.Select (i => i.Key + ": " + i.Value)) + Environment.NewLine +
+                    "]");
+            }
+        }
+ 
+        private void SearchForImplementations (Type[] listOfInterfaces)
+        {
+            // try to load derived types
             try
             {
-                foreach (var a in loadedAssemblies.Values)
+                foreach (var a in validAssemblies)
                 {
                     // dynamic assemblies don't have GetExportedTypes method
                     if (a.IsDynamic)
@@ -182,7 +211,7 @@ namespace BigDataPipeline.Core
                     for (int i = 0; i < types.Length; i++)
                     {
                         var t = types[i];
-                        if (t == null || t.IsAbstract || t.IsGenericTypeDefinition || t.IsInterface)
+                        if (t == null || t.IsAbstract || t.IsGenericTypeDefinition || !t.IsClass) //t.IsInterface
                             continue;
                         for (int j = 0; j < listOfInterfaces.Length; j++)
                         {
@@ -193,7 +222,7 @@ namespace BigDataPipeline.Core
                                     // ignore if the full name is the same!!!
                                     if (exportedTypes[t.Name].FullName == t.FullName)
                                         continue;
-                                    _logger.Info ("Module with same name detected {0}. {1} was overwritten with {2}.", t.Name, exportedTypes[t.Name].FullName, t.FullName);                                    
+                                    _logger.Info ("Module with same name detected {0}. {1} was overwritten with {2}.", t.Name, exportedTypes[t.Name].FullName, t.FullName);
                                 }
 
                                 // register type by fullName (namespace + name) and name
@@ -202,8 +231,7 @@ namespace BigDataPipeline.Core
 
                                 // add to interface list of types
                                 List<Type> list;
-                                exportedTypesByBaseType.TryGetValue (listOfInterfaces[j].Name, out list);
-                                if (list == null)
+                                if (!exportedTypesByBaseType.TryGetValue (listOfInterfaces[j].Name, out list))
                                 {
                                     list = new List<Type> ();
                                     exportedTypesByBaseType[listOfInterfaces[j].Name] = list;
@@ -218,17 +246,7 @@ namespace BigDataPipeline.Core
             {
                 _logger.Warn (ex);
             }
-
-            // log initialization status
-            if (ignoredAssemblies.Count > 0)
-            {
-                _logger.Info ("Assemblies ignorados: " + Environment.NewLine + 
-                    "[" + 
-                    Environment.NewLine +
-                    String.Join ("," + Environment.NewLine, ignoredAssemblies.Select (i => i.Key + ": " + i.Value)) + Environment.NewLine +
-                    "]");
-            }
-        }        
+        }
 
         private Assembly CurrentDomain_AssemblyResolve (object sender, ResolveEventArgs args)
         {
@@ -237,6 +255,12 @@ namespace BigDataPipeline.Core
                 throw new InvalidOperationException (
                       String.Format ("Assembly not available in plugin/modules path; assembly name '{0}'.", args.Name));
             return a;
+        }
+
+        private static string ParseAssemblyName (string name)
+        {
+            int i = name.IndexOf (',');
+            return (i > 0) ? name.Substring (0, i) : name;
         }
 
         /// <summary>
@@ -378,9 +402,13 @@ namespace BigDataPipeline.Core
         {
             List<Type> list;
             if (!exportedTypesByBaseType.TryGetValue (typeof (T).Name, out list))
-                throw new Exception ("Service Type unknow. Type not registered on ModuleContainer.Initialize call.");
+            {
+                SearchForImplementations (new[] { typeof (T) });
+                if (!exportedTypesByBaseType.TryGetValue (typeof (T).Name, out list))
+                    yield break;
+            }
             for (int i = 0; i < list.Count; i++)
                 yield return list[i];
         }
-    }
+    }    
 }
