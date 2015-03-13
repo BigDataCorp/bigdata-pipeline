@@ -12,24 +12,32 @@ namespace BigDataPipeline.Core
     public class ModuleContainer : IModuleContainer
     {
         delegate object InstanceFactory (params object[] args);
+        
+        class ModuleInfo
+        {
+            public Type TypeInfo;
+            public InstanceFactory Factory;
+        }
      
         object padlock = new object ();
 
         HashSet<string> blackListedAssemblies = new HashSet<string> (StringComparer.OrdinalIgnoreCase) { "mscorlib", "vshost", "BigDataPipeline", "NLog", "Newtonsoft.Json", "Topshelf", "Topshelf.Linux", "Topshelf.NLog", "BigDataPipeline.Web", "Nancy", "AWSSDK", "Dapper", "Mono.CSharp", "Mono.Security", "NCrontab", "Renci.SshNet", "System.Net.FtpClient", "MongoDB.Bson", "MongoDB.Driver", "System.Data.SQLite", "System.Net.Http.Formatting", "System.Web.Razor", "Microsoft.Owin.Hosting", "Microsoft.Owin", "Owin" };
         
-        Dictionary<string, List<Type>> exportedTypesByBaseType = new Dictionary<string, List<Type>> (StringComparer.Ordinal);
-
-        Dictionary<string, Type> exportedTypes = new Dictionary<string, Type> (StringComparer.Ordinal);
-
         Dictionary<string, Assembly> loadedAssemblies = new Dictionary<string, Assembly> (StringComparer.Ordinal);
         List<Assembly> validAssemblies = new List<Assembly> (30);
 
-        Dictionary<string, InstanceFactory> exportedFactories = new Dictionary<string, InstanceFactory> (StringComparer.Ordinal);
+        Dictionary<string, List<Type>> exportedTypesByBaseType = new Dictionary<string, List<Type>> (StringComparer.Ordinal);
+
+        Dictionary<string, ModuleInfo> exportedModules = new Dictionary<string, ModuleInfo> (StringComparer.Ordinal);
 
         NLog.Logger _logger = NLog.LogManager.GetLogger ("ModuleContainer");
 
         static ModuleContainer _instance = new ModuleContainer ();
 
+        /// <summary>
+        /// Gets the singleton instance for the ModuleContainer.
+        /// </summary>
+        /// <value>The instance.</value>
         public static ModuleContainer Instance
         {
             get
@@ -186,6 +194,8 @@ namespace BigDataPipeline.Core
  
         private void SearchForImplementations (Type[] listOfInterfaces)
         {
+            List<Type> implementationsList;
+            ModuleInfo info;
             // try to load derived types
             try
             {
@@ -210,33 +220,29 @@ namespace BigDataPipeline.Core
                     // search for types derived from desired types list (listOfInterfaces)
                     for (int i = 0; i < types.Length; i++)
                     {
-                        var t = types[i];
+                        Type t = types[i];
                         if (t == null || t.IsAbstract || t.IsGenericTypeDefinition || !t.IsClass) //t.IsInterface
                             continue;
                         for (int j = 0; j < listOfInterfaces.Length; j++)
                         {
                             if (listOfInterfaces[j].IsAssignableFrom (t))
                             {
-                                if (exportedTypes.ContainsKey (t.Name))
+                                // register type in exportedModules map
+                                if (!exportedModules.TryGetValue (t.FullName, out info))
                                 {
-                                    // ignore if the full name is the same!!!
-                                    if (exportedTypes[t.Name].FullName == t.FullName)
-                                        continue;
-                                    _logger.Info ("Module with same name detected {0}. {1} was overwritten with {2}.", t.Name, exportedTypes[t.Name].FullName, t.FullName);
+                                    info = new ModuleInfo { TypeInfo = t };
+                                    // register type by fullName (namespace + name) and name
+                                    exportedModules[t.FullName] = info;
+                                    exportedModules[t.Name] = info;
                                 }
 
-                                // register type by fullName (namespace + name) and name
-                                exportedTypes[t.FullName] = t;
-                                exportedTypes[t.Name] = t;
-
-                                // add to interface list of types
-                                List<Type> list;
-                                if (!exportedTypesByBaseType.TryGetValue (listOfInterfaces[j].Name, out list))
+                                // add to interface list of types                                
+                                if (!exportedTypesByBaseType.TryGetValue (listOfInterfaces[j].Name, out implementationsList))
                                 {
-                                    list = new List<Type> ();
-                                    exportedTypesByBaseType[listOfInterfaces[j].Name] = list;
+                                    implementationsList = new List<Type> ();
+                                    exportedTypesByBaseType[listOfInterfaces[j].Name] = implementationsList;
                                 }
-                                list.Add (t);
+                                implementationsList.Add (t);
                             }
                         }
                     }
@@ -354,20 +360,15 @@ namespace BigDataPipeline.Core
         /// <returns></returns>
         public object GetInstance (string fullTypeName)
         {
-            Type t;
-            InstanceFactory ctor;
+            ModuleInfo module;
             // if we have the type, lets get it
-            if (exportedTypes.TryGetValue (fullTypeName, out t))
+            if (exportedModules.TryGetValue (fullTypeName, out module))
             {
-                if (!exportedFactories.TryGetValue (t.FullName, out ctor))
+                if (module.Factory == null)
                 {
-                    ctor = CreateFactory (t);
-                    lock (padlock)
-                    {
-                        exportedFactories[t.FullName] = ctor;
-                    }
+                    module.Factory = CreateFactory (module.TypeInfo);
                 }
-                return ctor ();
+                return module.Factory ();                
             }
             return null;
         }
@@ -401,12 +402,16 @@ namespace BigDataPipeline.Core
         public IEnumerable<Type> GetTypes<T> () where T : class
         {
             List<Type> list;
+            // load interface implementations
             if (!exportedTypesByBaseType.TryGetValue (typeof (T).Name, out list))
             {
+                // if none was found, it was not initilized yet...
                 SearchForImplementations (new[] { typeof (T) });
+                // after the interface initilization, check again...
                 if (!exportedTypesByBaseType.TryGetValue (typeof (T).Name, out list))
                     yield break;
             }
+            // return implementations
             for (int i = 0; i < list.Count; i++)
                 yield return list[i];
         }
