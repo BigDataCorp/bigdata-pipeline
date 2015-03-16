@@ -6,10 +6,10 @@
     <div class="col-sm-4 col-sm-offset-8">
         <form class="form-horizontal" role="form" method="post" id="loginForm">
             <div class="form-group">
-                <input id="inputLogin" class="form-control" placeholder="login" required />
+                <input id="inputLogin" class="form-control" name="login" placeholder="login" required />
             </div>
             <div class="form-group">
-                <input id="inputPass" type="password" class="form-control" placeholder="password" required />
+                <input id="inputPass" type="password" name="password" class=" form-control" placeholder="password" required />
             </div>
             <div class="form-group">
                 <button id="btnLogin" type="submit" class="btn btn-primary col-sm-3 pull-right">Login</button>
@@ -40,7 +40,7 @@
             };
             simpleDialog.loading();
             $.ajax({
-                url: "@Url.Content("~/login")",
+                url: "./login/",
                 cache: false,
                 async: true,
                 type: 'POST',
@@ -83,7 +83,7 @@
                 };
 
                 _page.executeQuery("login", loginModel, function (r) {
-                    window.location = '@Url.Content("~/")';
+                    window.location = './';
                 });
 
                 return false;
