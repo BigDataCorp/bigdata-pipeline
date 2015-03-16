@@ -275,13 +275,13 @@ namespace BigDataPipeline.Core
                 {
                     case ModuleTypes.SystemModule:
                         {
-                            module = ModuleContainer.Instance.GetInstance<ISystemModule> (action.Module);
+                            module = ModuleContainer.Instance.GetInstanceAs<ISystemModule> (action.Module);
                             break;
                         }
                     case ModuleTypes.ActionModule:
                     default:
                         {
-                            module = ModuleContainer.Instance.GetInstance<IActionModule> (action.Module);
+                            module = ModuleContainer.Instance.GetInstanceAs<IActionModule> (action.Module);
                             break;
                         }
                 }

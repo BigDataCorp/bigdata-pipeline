@@ -1,7 +1,6 @@
 ﻿using BigDataPipeline.Core.Interfaces;
 using BigDataPipeline.Web.Models;
 using Nancy;
-using Nancy.Authentication.Forms;
 using Nancy.Security;
 using System;
 using System.Collections.Generic;

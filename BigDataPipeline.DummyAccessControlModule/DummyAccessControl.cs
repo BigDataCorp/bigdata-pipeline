@@ -27,7 +27,7 @@ namespace BigDataPipeline.DummyAccessControlModule
             return userRecord == null ? null : new FlexibleObject ().Set ("UserName", userRecord.UserName);
         }
 
-        public string ValidateUser (string username, string password)
+        public string OpenSession (string username, string password, TimeSpan? duration)
         {
             var userRecord = users.Where (u => u.UserName.Equals (username, StringComparison.OrdinalIgnoreCase) && u.Password == password).FirstOrDefault ();
 

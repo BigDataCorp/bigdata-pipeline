@@ -1,7 +1,6 @@
 ﻿using Nancy;
 using Nancy.ModelBinding;
 using System;
-using Nancy.Authentication.Forms;
 using BigDataPipeline.Web.Models;
 using BigDataPipeline.Core.Interfaces;
 
@@ -41,19 +40,16 @@ namespace BigDataPipeline.Web.site.Controllers
             if (ac == null)
                 return Response.AsJson (new QueryResponse (true));
 
-            var session = ac.ValidateUser (username, password);
+            var session = ac.OpenSession (username, password, TimeSpan.FromDays (14));
             if (!String.IsNullOrEmpty (session))
             {
                 var response = Response.AsJson (new QueryResponse (true));
 
                 // prepare login cookie authentication
-                Guid guid;
-                if (Guid.TryParse (session, out guid))
-                {
-                    var authResponse = this.LoginWithoutRedirect (guid, DateTime.UtcNow.AddDays (14));                
-                    foreach (var c in authResponse.Cookies)
-                        response.Cookies.Add (c);
-                }
+                var authResponse = this.LoginWithoutRedirect (session, DateTime.UtcNow.AddDays (14));
+                foreach (var c in authResponse.Cookies)
+                    response.Cookies.Add (c);
+
                 return response;
             }
 

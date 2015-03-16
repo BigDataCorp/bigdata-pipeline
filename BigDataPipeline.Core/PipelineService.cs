@@ -39,7 +39,7 @@ namespace BigDataPipeline.Core
 
         public IActionLogStorage GetActionLoggerStorage ()
         {
-            return ModuleContainer.Instance.GetInstance<IActionLogStorage> (_actionLoggerOutputModuleName);
+            return ModuleContainer.Instance.GetInstanceAs<IActionLogStorage> (_actionLoggerOutputModuleName);
         }
 
         public IAccessControlModule GetAccessControlModule ()
@@ -126,7 +126,7 @@ namespace BigDataPipeline.Core
             // load system modules
             try
             {
-                foreach (var j in ModuleContainer.Instance.GetInstances<ISystemModule> ())
+                foreach (var j in ModuleContainer.Instance.GetInstancesOf<ISystemModule> ())
                 {
                     try
                     {
@@ -175,7 +175,7 @@ namespace BigDataPipeline.Core
 
             // get storage modules
             var storagesModules = new List<string>();
-            foreach (var s in ModuleContainer.Instance.GetTypes<IStorageModule> ())
+            foreach (var s in ModuleContainer.Instance.GetTypesOf<IStorageModule> ())
             {
                 storagesModules.Add (s.Name);
 
@@ -222,7 +222,7 @@ namespace BigDataPipeline.Core
             // check configured storage
             _actionLoggerOutputModuleName = systemOptions.Get ("actionLoggerOutputModule", "");
             // try to initialize
-            using (var actionLogWriter = ModuleContainer.Instance.GetInstance<IActionLogStorage> (_actionLoggerOutputModuleName))
+            using (var actionLogWriter = ModuleContainer.Instance.GetInstanceAs<IActionLogStorage> (_actionLoggerOutputModuleName))
             {
                 if (actionLogWriter != null)
                 {
@@ -247,7 +247,7 @@ namespace BigDataPipeline.Core
             // get storage module
             var accessControlModules = new List<string> ();
             _accessControlModule = null;
-            foreach (var s in ModuleContainer.Instance.GetTypes<IAccessControlModule> ())
+            foreach (var s in ModuleContainer.Instance.GetTypesOf<IAccessControlModule> ())
             {
                 accessControlModules.Add (s.Name);
                 if (_accessControlModule != null)

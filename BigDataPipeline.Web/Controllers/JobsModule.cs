@@ -2,7 +2,6 @@
 using BigDataPipeline.Web.Models;
 using Nancy;
 using Nancy.Extensions;
-using Nancy.Authentication.Forms;
 using Nancy.Security;
 using Nancy.ModelBinding;
 using System;

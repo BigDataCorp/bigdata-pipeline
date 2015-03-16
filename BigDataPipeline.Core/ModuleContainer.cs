@@ -338,7 +338,7 @@ namespace BigDataPipeline.Core
         /// <typeparam name="T">The type of the T.</typeparam>
         /// <param name="fullTypeName">Full name of the type.</param>
         /// <returns></returns>
-        public T GetInstance<T> (string fullTypeName) where T : class
+        public T GetInstanceAs<T> (string fullTypeName) where T : class
         {
             return GetInstance (fullTypeName) as T;
         }
@@ -378,9 +378,9 @@ namespace BigDataPipeline.Core
         /// </summary>
         /// <param name="type">The base type.</param>
         /// <returns></returns>
-        public T GetInstance<T> () where T : class
+        public T GetInstanceOf<T> () where T : class
         {
-            return GetInstances<T> ().FirstOrDefault ();
+            return GetInstancesOf<T> ().FirstOrDefault ();
         }
 
         /// <summary>
@@ -388,10 +388,10 @@ namespace BigDataPipeline.Core
         /// </summary>
         /// <typeparam name="T">The interface or base type.</typeparam>
         /// <returns>List of intances of registered types</returns>
-        public IEnumerable<T> GetInstances<T> () where T : class
+        public IEnumerable<T> GetInstancesOf<T> () where T : class
         {
-            foreach (var t in GetTypes<T> ())
-                yield return GetInstance<T> (t.FullName);
+            foreach (var t in GetTypesOf<T> ())
+                yield return GetInstanceAs<T> (t.FullName);
         }
 
         /// <summary>
@@ -399,7 +399,7 @@ namespace BigDataPipeline.Core
         /// </summary>
         /// <typeparam name="T">The interface or base type.</typeparam>
         /// <returns>List of registered types</returns>
-        public IEnumerable<Type> GetTypes<T> () where T : class
+        public IEnumerable<Type> GetTypesOf<T> () where T : class
         {
             List<Type> list;
             // load interface implementations

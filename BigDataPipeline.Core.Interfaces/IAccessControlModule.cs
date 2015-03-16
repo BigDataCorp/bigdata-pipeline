@@ -9,6 +9,6 @@ namespace BigDataPipeline.Core.Interfaces
 
         FlexibleObject GetUserFromIdentifier (string identifier);
 
-        string ValidateUser (string username, string password);
+        string OpenSession (string username, string password, TimeSpan? duration);
     }
 }

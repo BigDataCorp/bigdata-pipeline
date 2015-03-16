@@ -4,7 +4,6 @@ using Owin;
 using System;
 using System.Linq;
 using System.Text;
-using Nancy.Authentication.Forms;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 
@@ -15,7 +14,7 @@ namespace BigDataPipeline.Web
         static NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger ();
         static Tuple<string, decimal>[] DefaultEmptyHeader = new[] { Tuple.Create ("application/json", 1.0m), Tuple.Create ("text/html", 0.9m), Tuple.Create ("*/*", 0.8m) };
         static Dictionary<string, string> moduleViews = new Dictionary<string, string> (StringComparer.OrdinalIgnoreCase);
-        static IUserMapper accessControlContext = null;        
+        static IAccessControlMapper accessControlContext = null;        
 
         protected override void ConfigureConventions (Nancy.Conventions.NancyConventions nancyConventions)
         {
@@ -121,7 +120,7 @@ namespace BigDataPipeline.Web
             pipelines.AfterRequest.AddItemToEndOfPipeline (NancyCompressionExtenstion.CheckForCompression);
                         
             // try to enable authentication            
-            if (container.TryResolve<IUserMapper> (out accessControlContext) &&
+            if (container.TryResolve<IAccessControlMapper> (out accessControlContext) &&
                 container.CanResolve<IAccessControlFactory> () &&
                 container.Resolve<IAccessControlFactory> ().GetAccessControlModule () != null)
             {
@@ -134,7 +133,7 @@ namespace BigDataPipeline.Web
                     RedirectUrl = "~/login",
                     UserMapper = accessControlContext,
                     //RequiresSSL = true,
-                    // note: the default CryptographyConfiguration generates a new key every application restart, invalidating the authentication cookie
+                    // note: the default CryptographyConfiguration uses the same salt key
                     CryptographyConfiguration = new Nancy.Cryptography.CryptographyConfiguration (
                         new Nancy.Cryptography.RijndaelEncryptionProvider (new Nancy.Cryptography.PassphraseKeyGenerator ("encryption" + this.GetType ().FullName, Encoding.UTF8.GetBytes ("PipelineSaltProvider"))),
                         new Nancy.Cryptography.DefaultHmacProvider (new Nancy.Cryptography.PassphraseKeyGenerator ("HMAC" + this.GetType ().FullName, Encoding.UTF8.GetBytes ("PipelineSaltProvider"))))
@@ -180,16 +179,31 @@ namespace BigDataPipeline.Web
             if (ctx.Request.Url.Path.IndexOf ("/login", StringComparison.OrdinalIgnoreCase) >= 0)
                 return null;
 
-            // check for token authentication: Header["Authorization"] with the session/token guid
-            Guid authToken;
-            if (ctx.Request.Headers.Authorization != null && Guid.TryParse (ctx.Request.Headers.Authorization, out authToken))
+            // check for token authentication: Header["Authorization"] with the session/token
+            string authToken = ctx.Request.Headers.Authorization;
+            if (!String.IsNullOrEmpty (authToken))
             {
                 ctx.CurrentUser = accessControlContext.GetUserFromIdentifier (authToken, ctx);
             }
             // check for token authentication: query parameter or form unencoded parameter
-            if (ctx.CurrentUser == null && Guid.TryParse (TryGetRequestParameter (ctx, "token"), out authToken))
+            if (ctx.CurrentUser == null)
             {
-                ctx.CurrentUser = accessControlContext.GetUserFromIdentifier (authToken, ctx);
+                authToken = TryGetRequestParameter (ctx, "token");
+                if (!String.IsNullOrEmpty (authToken))
+                {
+                    ctx.CurrentUser = accessControlContext.GetUserFromIdentifier (authToken, ctx);
+                }
+            }
+
+            // finally, check if login and password were passed as parameters
+            if (ctx.CurrentUser == null)
+            {
+                authToken = TryGetRequestParameter (ctx, "password");
+                if (!String.IsNullOrEmpty (authToken))
+                {
+                    authToken = accessControlContext.OpenSession (TryGetRequestParameter (ctx, "login"), authToken, TimeSpan.FromMinutes (10));
+                    ctx.CurrentUser = accessControlContext.GetUserFromIdentifier (authToken, ctx);
+                }
             }
 
             // analise if we got an authenticated user
