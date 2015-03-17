@@ -50,6 +50,7 @@
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Management" />
+    <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
@@ -60,6 +61,9 @@
     <Compile Include="ActionLogger\ActionLoggerInMemoryOutput.cs" />
     <Compile Include="AppDomainHelper.cs" />
     <Compile Include="EventExecutionPipeline.cs" />
+    <Compile Include="FileTransfer\FileSystemTransfer.cs" />
+    <Compile Include="FileTransfer\FileTransferService.cs" />
+    <Compile Include="FileTransfer\HttpTransfer.cs" />
     <Compile Include="ModuleContainer.cs" />
     <Compile Include="SessionContext.cs" />
     <Compile Include="PipelineService.cs" />
