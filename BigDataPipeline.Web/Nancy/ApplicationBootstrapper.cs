@@ -46,8 +46,8 @@ namespace BigDataPipeline.Web
                     var name = GetLastPathPart (d);
                     if (name.Equals ("assets", StringComparison.OrdinalIgnoreCase))
                     {
-                        var a = PrepareFilePath (d.Substring (modulesRoot.Length)).Split('/');
-                        nancyConventions.StaticContentsConventions.Add (Nancy.Conventions.StaticContentConventionBuilder.AddDirectory (String.Join ("/", a), PrepareFilePath (d.Substring (root.Length))));
+                        var a = PrepareFilePath (d.Substring (modulesRoot.Length));//.Split ('/');
+                        nancyConventions.StaticContentsConventions.Add (Nancy.Conventions.StaticContentConventionBuilder.AddDirectory (a, PrepareFilePath (d.Substring (root.Length))));
                     }
                     else if (name.Equals ("views", StringComparison.OrdinalIgnoreCase))
                     {
@@ -72,7 +72,6 @@ namespace BigDataPipeline.Web
             {
                 return string.Concat ("site/Views/", viewName);
             });
-
             this.Conventions.ViewLocationConventions.Add ((viewName, model, context) =>
             {
                 string p;
@@ -90,8 +89,8 @@ namespace BigDataPipeline.Web
         {
             Nancy.Diagnostics.DiagnosticsHook.Disable (pipelines);
             StaticConfiguration.CaseSensitive = false;
-            StaticConfiguration.DisableErrorTraces = false;
-            StaticConfiguration.EnableRequestTracing = false;
+            StaticConfiguration.DisableErrorTraces = true;
+            StaticConfiguration.EnableRequestTracing = false;            
             Nancy.Json.JsonSettings.MaxJsonLength = 10 * 1024 * 1024;
 
             // log any errors

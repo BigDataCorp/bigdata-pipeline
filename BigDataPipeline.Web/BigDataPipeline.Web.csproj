@@ -164,7 +164,6 @@
     <Content Include="site\scripts\simpleDialog.js">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="site\scripts\simpleTable.js" />
     <Content Include="site\scripts\simpleUtils.js" />
     <Content Include="site\scripts\ui-grid-unstable.min.js" />
     <None Include="app.config" />

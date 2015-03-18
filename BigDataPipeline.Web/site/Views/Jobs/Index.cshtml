@@ -19,17 +19,17 @@
 
     <div class="separator-8"></div>
 
-    <div id="dataTable"></div>
+    <div id="dataTableJobs" ui-grid="dataTableJobs" ui-grid-selection ui-grid-auto-resize external-scopes="gridParentScope" style="height:400px;"></div>
 
     <div class="separator-8"></div>
 
     <div class="row">
         <div class="col-sm-12">
             <div class="form-group">
-                <textarea class="form-control" rows="22" id="job_textarea"></textarea>
+                <textarea class="form-control" rows="22" id="job_textarea" ng-model="jobTextContent"></textarea>
             </div>
             <div class="form-group">
-                <button class="btn btn-default col-sm-1 pull-right" role="button" id="btnSave">Save</button>
+                <button class="btn btn-default col-sm-1 pull-right" role="button" id="btnSave" ng-click="saveCurrentJob()">Save</button>
             </div>
         </div>
     </div>
@@ -50,83 +50,113 @@
             //        .toggleClass('alert-warning', evtType === "warning")
             //        .toggleClass('alert-info', evtType || 'info' === "info")
             //        .show();
-            //},
-            executeQuery: function (operation, data, onsuccess, onerror) {
+            //}
+        };
+
+        //** angularJs initialization **
+        var ng_app = angular.module('app', ['ui.grid', 'ui.grid.selection', 'ui.grid.autoResize']);
+        ng_app.directive('ngSelect2Bind', ['$q', ngSelect2BindDirective]);
+
+        //** angularJs page main controller **
+        ng_app.controller('mainController', function ($scope, $http, $timeout) {
+            //** angularJs initialization **
+            $scope.status = false;
+            $scope.message = "loading..."; 
+            $scope.gridParentScope = $scope;
+
+            //$scope.jobTextContent = 'lkjshdflkjhsdkljhlksjdfh';
+
+            //** methods and behaviors **
+            $scope.executeQuery = function (operation, data, onsuccess, onerror) {
                 var p = {
                     op: operation,
                     data: data
                 };
                 simpleDialog.loading();
-                $.ajax({
+                return $.ajax({
                     url: "./jobs/query",
                     cache: false,
                     async: true,
                     type: 'POST',
                     dataType: "json",
-                    data: JSON.stringify(p),
+                    data: angular.toJson(p),
                     contentType: 'application/json; charset=utf-8',
                     success: function (data) {
                         if (data && data.status) {
                             simpleDialog.close();
-                            if (onsuccess) { onsuccess(data.result); }
+                            if (typeof onsuccess == 'function') {
+                                $timeout(function () {
+                                    onsuccess(data.result);
+                                });
+                            }
                         } else {
                             if (data && data.message) {
                                 simpleDialog.warning(data.message);
                             } else {
                                 simpleDialog.error();
                             }
-                            if (onerror) { onerror(); }
+                            if (typeof onerror == 'function') {
+                                $timeout(function () {
+                                    onerror();
+                                });
+                            }
                         }
                     },
                     error: function () {
                         simpleDialog.error();
-                        if (onerror) { onerror(); }
+                        if (typeof onerror == 'function') {
+                            $timeout(function () {
+                                onerror();
+                            });
+                        }
                     }
                 });
-            },
-            refresh: function () {
-                _page.executeQuery('load', null,
-                    function (data) {
-                        $('#dataTable').data('simpleTable').populateTable(data, true);
-                        //$('#status').html(JSON.stringify(data, null, ' \t ').replace(/\n/gm, '<br/>').replace(/\t/gm, '&nbsp;'));
-                    }, function () {
-                        $('#dataTable').data('simpleTable').clearTable();
-                    });
-            },
-            remove: function (jobId) {
-                simpleDialog.warning('Remove job: ' + jobId + ' ?', function () {
-                    _page.executeQuery('remove', { 'jobId': jobId.toString() },
+            };
+
+            $scope.saveCurrentJob = function () {
+                try {
+                    // parse edited job to check if its a valid json object
+                    var job = JSON.parse($scope.jobTextContent);
+                    // save  
+                    $scope.saveJob(job);
+                } catch (e) {
+                    simpleDialog.error('Error parsing Job: ' + e.message);
+                }
+            };
+
+            $scope.saveJob = function (job) {
+                $scope.executeQuery('save',
+                            { 'job': angular.toJson(job) },
+                            function (data) {
+                                $scope.refresh();
+                                simpleDialog.success('Job saved!');
+                            });
+            };
+
+            $scope.removeJob = function (job) {
+                simpleDialog.warning('Remove job <b>' + job.Name + '</b> ?<br/><br/>' + $scope.getSimpleJobDetails(job), function () {
+                    $scope.executeQuery('remove', { 'jobId': job.Id.toString() },
                         function (data) {
                             _page.refresh();
-                            simpleDialog.success('Job removed!');
+                            simpleDialog.success('Job removed!<br/><br/>' + $scope.getSimpleJobDetails(job));
                         });
                 });
-            },
-            save: function (job) {
-                _page.executeQuery('save', { 'job': JSON.stringify(job) },
-                    function (data) {
-                        _page.refresh();
-                        simpleDialog.success('Job saved!');
-                    });
-            },
-            play: function (jobId) {
-                simpleDialog.warning('Execute job: ' + jobId + ' ?', function () {
-                    _page.executeQuery('play', { 'jobId': jobId.toString() },
+            };
+
+            $scope.playJob = function (job) {
+                simpleDialog.warning('Execute job <b>' + job.Name + '</b> ?<br/><br/>' + $scope.getSimpleJobDetails(job), function () {
+                    $scope.executeQuery('play', { 'jobId': job.Id.toString() },
                         function (data) {
                             _page.refresh();
-                            simpleDialog.success('Job executing...');
+                            simpleDialog.success('Job executing...<br/><br/>' + $scope.getSimpleJobDetails(job));
                         });
                 });
-            },
-        };
+            };
 
-        var ng_app = angular.module('app', ['ui.grid', 'ui.grid.selection']);
-        ng_app.directive('ngSelect2Bind', ['$q', ngSelect2BindDirective]);
-
-        ng_app.controller('mainController', function ($scope, $http, $timeout) {
-            $scope.status = false;
-            $scope.message = "loading..."; 
-            $scope.gridParentScope = $scope;
+            $scope.getSimpleJobDetails = function (job) {
+                var jobDetails = '<ul><li>Job Id: {0}</li><li>Job Name: {1}</li><li>Job Domain: {2}</li></ul>';
+                return jobDetails.replace('{0}', job.Id).replace('{1}', job.Name).replace('{2}', job.Domain);
+            };
 
             $scope.showMessage = function (message, isError) {
                 $scope.status = !isError;
@@ -134,110 +164,85 @@
             };
 
             $scope.clearItem = function () {
-                $('#job_textarea').val('');
+                $scope.selectedJob = null;
+                $scope.jobTextContent = '';
             };
 
             $scope.selectItem = function (item) {
-                $('#job_textarea').val(JSON.stringify(data, null, ' \t '));
+                if (item) {
+                    $scope.selectedJob = item;
+                    $scope.jobTextContent = angular.toJson(item, true, 10);
+                } else {
+                    $scope.clearItem();
+                }
             };
 
             $scope.refresh = function () {
                 $scope.showMessage("loading...");
 
-                _page.executeQuery('load', null,
-                    function (data) {
-                        $('#dataTable').data('simpleTable').populateTable(data, true);
-                        //$('#status').html(JSON.stringify(data, null, ' \t ').replace(/\n/gm, '<br/>').replace(/\t/gm, '&nbsp;'));                        
-                        $timeout(function () {
-                            $scope.showMessage();
-                            $scope.dataTableEvents.data = data;
-                        });
+                $scope.executeQuery('load', null,
+                    function (data) {                        
+                        $scope.showMessage('data loaded!');
+                        $scope.dataTableJobs.data = data;
+                        // refresh selected item
+                        if ($scope.selectedJob) {
+                            for (var i = 0, len = data.length; i < len; i++) {
+                                if (data[i].Id === $scope.selectedJob.Id) {
+                                    $scope.dataTableJobsApi.selection.selectRow(data[i]);
+                                    break;
+                                }
+                            }
+                        }
                     }, function () {
-                        $timeout(function () {
-                            $scope.clearItem();
-                            $scope.showMessage("Loading failled!", true);
+                        $scope.clearItem();
+                        $scope.showMessage("Loading failled!", true);
+                    });
+            };
+
+            //** UI components configuration **
+            (function () {
+                // table configuration
+                $scope.dataTableJobs = {
+                    enableGridMenu: false,
+                    rowHeight: 36,
+                    multiSelect: false,
+                    noUnselect: true,
+                    enableRowSelection: true,
+                    enableSelectionBatchEvent: false,
+                    enableSelectAll: false,
+                    enableRowHeaderSelection: false,
+                    showGridFooter: true,
+                    onRegisterApi: function (gridApi) {
+                        $scope.dataTableJobsApi = gridApi;
+                        gridApi.selection.on.rowSelectionChanged($scope, function (row) {
+                            if (row.isSelected) {
+                                $scope.selectItem(row.entity);
+                            } else {
+                                $scope.clearItem();
+                            }
                         });
-                    });
-            };
-
-            // table configuration
-            $scope.dataTableEvents = {
-                enableGridMenu: false,
-                rowHeight: 36,
-                multiSelect: false,
-                noUnselect: true,
-                enableRowSelection: true,
-                enableSelectAll: false,
-                enableRowHeaderSelection: false,
-                onRegisterApi: function (gridApi) {
-                    $scope.dataTableEventsApi = gridApi;
-                    gridApi.selection.on.rowSelectionChanged($scope, function (row) {
-                        if (row.isSelected) {
-                            $scope.selectItem(row.entity);
-                        } else {
-                            $scope.clearItem();
-                        }                        
-                    });
-                },
-                data: []
-            };
-
-            $scope.dataTableEvents.columnDefs = [
-                { name: 'Id', field: "Id", resizable: true },
-                { name: 'Name', field:"Name", resizable: true },
-                { name: 'Domain', field:"Domain", resizable: true },
-                { name: 'Description', field:"Description", resizable: true },
-                { name: 'Enabled', field:"Enabled", resizable: true },
-                { name: 'Jobs', field:"Jobs", resizable: true },
-                { name: 'Actions', displayName: '', resizable: true, enableColumnMenu: false, enableSorting: false, cellTemplate: 
-                           '<div><button type="button" role="button" ng-click="getExternalScopes().selectItem(row, \'play\')" class="btn btn-default btn-small margin-horizontal-2"><i class="fa fa-play"></i></button>' +
-                           '<button type="button" role="button" ng-click="getExternalScopes().selectItem(row, \'remove\')" class="btn btn-default btn-small margin-horizontal-2"><i class="fa fa-trash-o text-danger"></i></button></div>' 
-                }
-            ];
+                    },
+                    columnDefs: [
+                            { name: 'Id', field: "Id", resizable: true },
+                            { name: 'Name', field: "Name", resizable: true },
+                            { name: 'Domain', field: "Domain", resizable: true },
+                            { name: 'Description', field: "Description", resizable: true },
+                            { name: 'Enabled', field: "Enabled", resizable: true },
+                            { name: 'Jobs', resizable: true, cellTemplate: '<div>{{ !!row.entity.Jobs ? row.entity.Jobs.length : 0 }}</div>' },
+                            { name: 'Actions', displayName: '', resizable: true, enableColumnMenu: false, enableSorting: false, cellTemplate:
+                                         '<div><button type="button" role="button" ng-click="getExternalScopes().playJob(row.entity)" class="btn btn-default btn-small margin-horizontal-2"><i class="fa fa-play"></i></button>' +
+                                         '<button type="button" role="button" ng-click="getExternalScopes().removeJob(row.entity)" class="btn btn-default btn-small margin-horizontal-2"><i class="fa fa-trash-o text-danger"></i></button></div>'
+                            }
+                    ],
+                    data: []
+                };
+            })();
         });
 
 
         // initialization
         $(document).ready(function () {
-            angular.element('#mainController').scope().refresh();
-            
-            $('#btnSave').click(function () {
-                var job;
-                try {
-                    job = JSON.parse($('#job_textarea').val());
-                } catch (e) {
-                    simpleDialog.error('Error parsing Job: ' + e.message);
-                    return;
-                }
-                _page.save(job);
-            });
-
-            $('#dataTable').simpleTable({
-                onRowSelection: function (data, rowId) {
-                    $('#job_textarea').val(JSON.stringify(data, null, ' \t '));
-                },
-                columns: [                        
-                        { header: 'Name', class: 'text-center' },
-                        { header: 'Domain', class: 'text-center' },
-                        { field: 'Id', header: 'Id', class: 'text-center' },
-                        { header: 'Description', class: 'text-center' },
-                        { header: 'Enabled', class: 'text-center' },
-                        { header: 'Jobs', class: 'text-center' },
-                        { header: '', class: 'text-center' },
-                ],
-                customDataParser: function (data) {
-                    return [
-                            data.Id,
-                            data.Name || '',
-                            data.Domain || '',
-                            data.Description || '',
-                            data.Enabled ? 'enabled' : 'disabled',
-                            !!data.Jobs ? data.Jobs.length : 0,
-                            '<button onclick="_page.play(\'' + data.Id + '\');" class="btn btn-default margin-horizontal-2" role="button"><i class="fa fa-play"></i></button>' +
-                            '<button onclick="_page.remove(\'' + data.Id + '\');" class="btn btn-default margin-horizontal-2" role="button"><i class="fa fa-trash-o text-danger"></i></button>'
-                    ];
-                }
-            });            
+            angular.element('#mainController').scope().refresh();        
         });
     </script>
 }
