@@ -11,7 +11,7 @@ namespace BigDataPipeline.Core
 {
     public class ModuleContainer : IModuleContainer
     {
-        delegate object InstanceFactory (params object[] args);
+        public delegate object InstanceFactory (params object[] args);
         
         class ModuleInfo
         {
@@ -23,7 +23,7 @@ namespace BigDataPipeline.Core
 
         HashSet<string> blackListedAssemblies = new HashSet<string> (StringComparer.OrdinalIgnoreCase) { "mscorlib", "vshost", "BigDataPipeline", "NLog", "Newtonsoft.Json", "Topshelf", "Topshelf.Linux", "Topshelf.NLog", "BigDataPipeline.Web", "Nancy", "AWSSDK", "Dapper", "Mono.CSharp", "Mono.Security", "NCrontab", "Renci.SshNet", "System.Net.FtpClient", "MongoDB.Bson", "MongoDB.Driver", "System.Data.SQLite", "System.Net.Http.Formatting", "System.Web.Razor", "Microsoft.Owin.Hosting", "Microsoft.Owin", "Owin" };
         
-        Dictionary<string, Assembly> loadedAssemblies = new Dictionary<string, Assembly> (StringComparer.Ordinal);
+        Dictionary<string, Assembly> loadedAssemblies;
         List<Assembly> validAssemblies = new List<Assembly> (30);
 
         Dictionary<string, List<Type>> exportedTypesByBaseType = new Dictionary<string, List<Type>> (StringComparer.Ordinal);
@@ -53,7 +53,7 @@ namespace BigDataPipeline.Core
         /// </summary>
         /// <param name="modulesFolder">List of folders where plugin/modules are located.</param>
         /// <param name="listOfInterfaces">The list of interfaces or base types.</param>
-        public void Initialize (string[] modulesFolder, Type[] listOfInterfaces)
+        public void LoadModules (string[] modulesFolder, Type[] listOfInterfaces)
         {
             lock (padlock)
             {
@@ -68,7 +68,7 @@ namespace BigDataPipeline.Core
         /// </summary>
         /// <param name="modulesFolder">The modules folder.</param>
         /// <param name="listOfInterfaces">The list of interfaces or base types.</param>
-        public void Initialize (string modulesFolder, Type[] listOfInterfaces)
+        public void LoadModules (string modulesFolder, Type[] listOfInterfaces)
         {
             lock (padlock)
             {
@@ -78,6 +78,8 @@ namespace BigDataPipeline.Core
         
         private void ContainerInitialization (string[] modulesFolder, Type[] listOfInterfaces)
         {
+            loadedAssemblies = new Dictionary<string, Assembly> (StringComparer.Ordinal);
+
             // if we have no interface, create an empty list
             if (listOfInterfaces == null)
                 listOfInterfaces = new Type[0];
@@ -91,8 +93,10 @@ namespace BigDataPipeline.Core
             // prepare list of loaded interfaces
             for (int i = 0; i < listOfInterfaces.Length; i++)
             {
-                if (!exportedTypesByBaseType.ContainsKey (listOfInterfaces[i].Name))
-                    exportedTypesByBaseType.Add (listOfInterfaces[i].Name, new List<Type> ()); 
+                if (!exportedTypesByBaseType.ContainsKey (listOfInterfaces[i].FullName))
+                {
+                    exportedTypesByBaseType[listOfInterfaces[i].FullName] = new List<Type> ();
+                } 
             }
 
             // get mscorelib assembly
@@ -194,11 +198,17 @@ namespace BigDataPipeline.Core
  
         private void SearchForImplementations (Type[] listOfInterfaces)
         {
-            List<Type> implementationsList;
-            ModuleInfo info;
+            // check if first assembly scan was executed
+            if (loadedAssemblies == null)
+                ContainerInitialization (null, listOfInterfaces);
+
             // try to load derived types
             try
             {
+                List<Type> implementationsList;
+                ModuleInfo info;
+
+                // search listed assemblies
                 foreach (var a in validAssemblies)
                 {
                     // dynamic assemblies don't have GetExportedTypes method
@@ -237,10 +247,10 @@ namespace BigDataPipeline.Core
                                 }
 
                                 // add to interface list of types                                
-                                if (!exportedTypesByBaseType.TryGetValue (listOfInterfaces[j].Name, out implementationsList))
+                                if (!exportedTypesByBaseType.TryGetValue (listOfInterfaces[j].FullName, out implementationsList))
                                 {
                                     implementationsList = new List<Type> ();
-                                    exportedTypesByBaseType[listOfInterfaces[j].Name] = implementationsList;
+                                    exportedTypesByBaseType[listOfInterfaces[j].FullName] = implementationsList;
                                 }
                                 implementationsList.Add (t);
                             }
@@ -343,6 +353,11 @@ namespace BigDataPipeline.Core
             return GetInstance (fullTypeName) as T;
         }
 
+        public T GetInstanceAs<T> (Type type) where T : class
+        {
+            return GetInstance (type.FullName) as T;
+        }
+
         /// <summary>
         /// Gets an instance for a registered type.
         /// </summary>
@@ -403,17 +418,47 @@ namespace BigDataPipeline.Core
         {
             List<Type> list;
             // load interface implementations
-            if (!exportedTypesByBaseType.TryGetValue (typeof (T).Name, out list))
+            if (!exportedTypesByBaseType.TryGetValue (typeof (T).FullName, out list))
             {
                 // if none was found, it was not initilized yet...
                 SearchForImplementations (new[] { typeof (T) });
                 // after the interface initilization, check again...
-                if (!exportedTypesByBaseType.TryGetValue (typeof (T).Name, out list))
+                if (!exportedTypesByBaseType.TryGetValue (typeof (T).FullName, out list))
                     yield break;
             }
             // return implementations
             for (int i = 0; i < list.Count; i++)
                 yield return list[i];
         }
-    }    
+
+        /// <summary>
+        /// Gets the constructor for the desired type.
+        /// </summary>
+        /// <param name="type">The type.</param>
+        /// <returns></returns>
+        public InstanceFactory GetConstructor (Type type)
+        {
+            return GetConstructor (type.FullName);
+        }
+
+        /// <summary>
+        /// Gets the constructor for the desired type.
+        /// </summary>
+        /// <param name="fullTypeName">Full name of the type.</param>
+        /// <returns></returns>
+        public InstanceFactory GetConstructor (string fullTypeName)
+        {
+            ModuleInfo module;
+            // if we have the type, lets get it
+            if (exportedModules.TryGetValue (fullTypeName, out module))
+            {
+                if (module.Factory == null)
+                {
+                    module.Factory = CreateFactory (module.TypeInfo);
+                }
+                return module.Factory;
+            }
+            return null;
+        }
+    }
 }

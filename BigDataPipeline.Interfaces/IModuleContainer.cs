@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace BigDataPipeline.Interfaces
 {
+    /// <summary>
+    /// Module Container.
+    /// </summary>
     public interface IModuleContainer
     {
         /// <summary>
@@ -12,6 +15,14 @@ namespace BigDataPipeline.Interfaces
         /// <param name="fullTypeName">Full name of the type.</param>
         /// <returns></returns>
         T GetInstanceAs<T> (string fullTypeName) where T : class;
+
+        /// <summary>
+        /// Gets an instance for a registered type.
+        /// </summary>
+        /// <typeparam name="T">The type of the T.</typeparam>
+        /// <param name="type">The type.</param>
+        /// <returns></returns>
+        T GetInstanceAs<T> (Type type) where T : class;
 
         /// <summary>
         /// Gets an instance for a registered type.

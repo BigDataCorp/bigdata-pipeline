@@ -115,7 +115,7 @@ namespace BigDataPipeline.Core
             }.Concat (listOfAdditionalInterfaces).ToArray ();
 
             // load modules
-            ModuleContainer.Instance.Initialize (modulesFolder, interfaces);
+            ModuleContainer.Instance.LoadModules (modulesFolder, interfaces);
 
             _logger.Debug ("[done] Loading modules...");
         }
@@ -161,7 +161,7 @@ namespace BigDataPipeline.Core
             string storageModule = systemOptions.Get ("storageModule", "");
 
             string storageConnectionString = systemOptions.Get ("storageConnectionString", "");
-            string storageType = null;
+            string storageType = storageModule;
             if (storageConnectionString != null && storageConnectionString.Contains ("://"))
                 storageType = storageConnectionString.Substring (0, storageConnectionString.IndexOf ("://"));
 
