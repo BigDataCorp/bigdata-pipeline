@@ -101,6 +101,9 @@ namespace BigDataPipeline.Core
 
             if (String.IsNullOrEmpty (pattern))
                 pattern = "*";
+            
+            if (!System.IO.Directory.Exists (folder))
+                return new FileTransferInfo[0];
 
             return System.IO.Directory.EnumerateFiles (folder, pattern, recursive ? System.IO.SearchOption.AllDirectories : System.IO.SearchOption.TopDirectoryOnly)
                        .Select (i => new FileInfo (i)).Select (i => new FileTransferInfo (i.FullName, i.Length, i.CreationTime, i.LastWriteTime));
@@ -327,6 +330,18 @@ namespace BigDataPipeline.Core
         {
             _setStatus (false, "Operation not supported");
             return Status;
+        }
+
+        public Stream OpenWrite ()
+        {
+            return OpenWrite (Details.FullPath);
+        }
+
+        public Stream OpenWrite (string destFullPath)
+        {
+            FileTransferHelpers.CreateDirectory (System.IO.Path.GetDirectoryName (destFullPath));
+            // upload
+            return new FileStream (destFullPath, FileMode.Create, FileAccess.Write, FileShare.Delete | FileShare.Read, FileTransferConnectionInfo.DefaultWriteBufferSize);
         }
     }
 }

@@ -286,5 +286,16 @@ namespace BigDataPipeline.Core
             _setStatus (false, "Operation not supported");
             return Status;
         }
+
+        public Stream OpenWrite ()
+        {
+            return OpenWrite (Details.FullPath);
+        }
+
+        public Stream OpenWrite (string destFullPath)
+        {
+            _setStatus (false, "Operation not supported");
+            return null;
+        }
     }
 }

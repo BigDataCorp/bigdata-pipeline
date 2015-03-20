@@ -19,7 +19,7 @@
 
     <div class="separator-8"></div>
 
-    <div id="dataTableJobs" ui-grid="dataTableJobs" ui-grid-selection ui-grid-auto-resize external-scopes="gridParentScope" style="height:400px;"></div>
+    <div id="dataTableJobs" ui-grid="dataTableJobs" ui-grid-selection ui-grid-auto-resize style="height:400px;"></div>
 
     <div class="separator-8"></div>
 
@@ -62,7 +62,6 @@
             //** angularJs initialization **
             $scope.status = false;
             $scope.message = "loading..."; 
-            $scope.gridParentScope = $scope;
 
             //$scope.jobTextContent = 'lkjshdflkjhsdkljhlksjdfh';
 
@@ -154,8 +153,8 @@
             };
 
             $scope.getSimpleJobDetails = function (job) {
-                var jobDetails = '<ul><li>Job Id: {0}</li><li>Job Name: {1}</li><li>Job Domain: {2}</li></ul>';
-                return jobDetails.replace('{0}', job.Id).replace('{1}', job.Name).replace('{2}', job.Domain);
+                var jobDetails = '<ul><li>Job Id: {0}</li><li>Job Name: {1}</li><li>Job Group: {2}</li></ul>';
+                return jobDetails.replace('{0}', job.Id).replace('{1}', job.Name).replace('{2}', job.Group);
             };
 
             $scope.showMessage = function (message, isError) {
@@ -203,6 +202,7 @@
             (function () {
                 // table configuration
                 $scope.dataTableJobs = {
+                    appScopeProvider: $scope,
                     enableGridMenu: false,
                     rowHeight: 36,
                     multiSelect: false,
@@ -225,13 +225,13 @@
                     columnDefs: [
                             { name: 'Id', field: "Id", resizable: true },
                             { name: 'Name', field: "Name", resizable: true },
-                            { name: 'Domain', field: "Domain", resizable: true },
+                            { name: 'Group', field: "Group", resizable: true },
                             { name: 'Description', field: "Description", resizable: true },
                             { name: 'Enabled', field: "Enabled", resizable: true },
-                            { name: 'Jobs', resizable: true, cellTemplate: '<div>{{ !!row.entity.Jobs ? row.entity.Jobs.length : 0 }}</div>' },
+                            { name: 'Jobs', resizable: true, cellTemplate: '<div>{{ !!row.entity.RootAction ? 1 : 0 }}</div>' },
                             { name: 'Actions', displayName: '', resizable: true, enableColumnMenu: false, enableSorting: false, cellTemplate:
-                                         '<div><button type="button" role="button" ng-click="getExternalScopes().playJob(row.entity)" class="btn btn-default btn-small margin-horizontal-2"><i class="fa fa-play"></i></button>' +
-                                         '<button type="button" role="button" ng-click="getExternalScopes().removeJob(row.entity)" class="btn btn-default btn-small margin-horizontal-2"><i class="fa fa-trash-o text-danger"></i></button></div>'
+                                         '<div><button type="button" role="button" ng-click="grid.appScope.playJob(row.entity)" class="btn btn-default btn-small margin-horizontal-2"><i class="fa fa-play"></i></button>' +
+                                         '<button type="button" role="button" ng-click="grid.appScope.removeJob(row.entity)" class="btn btn-default btn-small margin-horizontal-2"><i class="fa fa-trash-o text-danger"></i></button></div>'
                             }
                     ],
                     data: []

@@ -1,4 +1,5 @@
-﻿using BigDataPipeline.Interfaces;
+﻿using System.Collections.Concurrent;
+using BigDataPipeline.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,6 +8,15 @@ using System.Threading.Tasks;
 
 namespace BigDataPipeline.Core
 {
+    public class TaskOrigin
+    {
+        public const string Scheduller = "Scheduller";
+        public const string Request = "Request";
+        public const string EventHandler = "EventHandler";
+        public const string EmitedTask = "EmitedTask";
+        public const string ConcurrentConsumer = "ConcurrentConsumer";
+    }
+
     public class SessionContext : ISessionContext
     {        
         private string _id;
@@ -44,7 +54,7 @@ namespace BigDataPipeline.Core
         /// How this action was fired.
         /// </summary>
         /// <value>The mode.</value>
-        public TaskOrigin Origin { get; set; }
+        public string Origin { get; set; }
 
         /// <summary>
         /// Context execution options.
@@ -91,34 +101,94 @@ namespace BigDataPipeline.Core
             return _logger;
         }
 
+        private bool _isTreeLeaf = true;
+        private ActionDetails _concurrentConsumer;
+        private ActionDetails _currentAction;
+
+        internal void SetCurrentAction (ActionDetails currentAction)
+        {
+            _currentAction = currentAction;
+            _isTreeLeaf = true;
+            _concurrentConsumer = null;
+            if (_currentAction.Actions != null && _currentAction.Actions.Count > 0)
+            {
+                _isTreeLeaf = false;
+                _concurrentConsumer = _currentAction.Actions.FirstOrDefault (i => i.Get ("behavior::concurrentConsumer", false));
+            }
+        }
+
+        public ActionDetails GetCurrentAction ()
+        {
+            return _currentAction;
+        }
+
         public IModuleContainer GetContainer ()
         {
             return ModuleContainer.Instance;
         }
 
-        RecordCollection _inputStream;
+        IRecordCollection _inputStream;
 
-        public void SetInputStream (RecordCollection inputStreams)
+        public void SetInputStream (IRecordCollection inputStreams)
         {
             _inputStream = inputStreams;
         }
 
-        public RecordCollection GetInputStreams ()
+        public IRecordCollection GetInputStream ()
         {
             return _inputStream;
         }
-
-
-        List<Record> _buffer;
-        List<Record> _lastBuffer;
+        
+        BlockingCollection<Record> _blockingCollection;
+        Action<Record> _addToBuffer;
+        IRecordCollection _buffer;
 
         public void Emit (Record item)
-        {
+        { 
+            // if there is no next action to consume this emited record...
+            if (_isTreeLeaf)
+                return;
             // Note: instead of a buffer, we should implement a pipeline stream of records (producer => consumer)...
             // this pipeline should be created only at the first emited item
             if (_buffer == null)
-                _buffer = new List<Record> ();
-            _buffer.Add (item);
+            {
+                InitializeInternalBuffer ();                
+            }
+            _addToBuffer (item);
+        }
+ 
+        private void InitializeInternalBuffer ()
+        {
+            if (_concurrentConsumer != null)
+            {
+                var limit = _concurrentConsumer.Get ("behavior::concurrentConsumerQueueLimit", 10);
+                _blockingCollection = limit > 0 ? new System.Collections.Concurrent.BlockingCollection<Record> (limit) :
+                                                 new System.Collections.Concurrent.BlockingCollection<Record> ();
+                _addToBuffer = _blockingCollection.Add;
+                _buffer = new RecordCollection (_blockingCollection.GetConsumingEnumerable ());
+
+                // start concurrent action
+                _concurrentConsumer.Set ("internal::status", "ignore");
+                TaskExecutionPipeline.Instance.TryAddTask (new SessionContext
+                {
+                    Job = new PipelineJob
+                    {
+                        Id = Job.Id,
+                        Name = Job.Name,
+                        Group = Job.Group,
+                        Enabled = true,
+                        RootAction = _concurrentConsumer
+                    },
+                    Start = DateTime.UtcNow,
+                    Origin = TaskOrigin.ConcurrentConsumer
+                });
+            }
+            else
+            {
+                var col = new List<Record> ();
+                _buffer = new RecordCollection (col);
+                _addToBuffer = col.Add;
+            }
         }
 
         public void EmitEvent (string eventName, Record item)
@@ -143,20 +213,20 @@ namespace BigDataPipeline.Core
             });
         }
 
-        public IEnumerable<Record> GetEmitedItems ()
+        public IRecordCollection GetEmitedItems ()
         {
-            return _lastBuffer;
+            return _buffer;
         }
 
         public bool HasEmitedItems ()
         {
-            return _lastBuffer != null;
+            return _buffer != null;
         }
 
-        public void FinalizeAction (bool cleanUp = false)
+        public void FinalizeAction ()
         {
-            _lastBuffer = cleanUp ? null : _buffer;
-            _buffer = null;
+            if (_blockingCollection != null)
+                _blockingCollection.CompleteAdding ();            
         }
 
 

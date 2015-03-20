@@ -220,8 +220,9 @@ namespace BigDataPipeline.Interfaces
             }
             else
             {
-                BasePath = Uri.UnescapeDataString (String.Join ("", uriScheme.Segments.Take (uriScheme.Segments.Length - 1)));
-                SearchPattern = Uri.UnescapeDataString (uriScheme.Segments[uriScheme.Segments.Length - 1]);
+                var p = FileTransferHelpers.SplitByLastPathPart (FullPath);
+                BasePath = p.Item1;
+                SearchPattern = p.Item2;
             }
 
             // parse credentials
@@ -299,14 +300,23 @@ namespace BigDataPipeline.Interfaces
                 {
                     //var parsed = new string[0];
                     int endPos = (wildCard1 > 0 && wildCard2 > 0) ? Math.Min (wildCard1, wildCard2) : Math.Max (wildCard1, wildCard2);                
-                    var pos = Math.Max (pattern.LastIndexOf ('\\', endPos), pattern.LastIndexOf ('/', endPos));
+                    var pos = Math.Max (pattern.LastIndexOf ('\\', endPos), pattern.LastIndexOf ('/', endPos)) + 1;
 
-                    return Tuple.Create (pos >= 0 ? pattern.Substring (0, pos) : "", pattern.Substring (endPos));
+                    return Tuple.Create (pos > 0 ? pattern.Substring (0, pos) : "", pattern.Substring (pos));
                 }
             }
             return null;
         }
 
+        public static Tuple<string, string> SplitByLastPathPart (string pattern)
+        {
+            if (pattern != null)
+            {
+                var pos = Math.Max (pattern.LastIndexOf ('\\'), pattern.LastIndexOf ('/')) + 1;
+                return Tuple.Create (pos > 0 ? pattern.Substring (0, pos) : "", pattern.Substring (pos));
+            }
+            return null;
+        }
 
         public static void DeleteFile (string fileName)
         {

@@ -52,7 +52,7 @@ namespace BigDataPipeline.Core
             string[] path = new string[2];
             // try to find the uri scheme name
             var ix = input.IndexOf ("://", StringComparison.Ordinal);
-            if (ix < 0)
+            if (ix > 0)
             {
                 return input.Substring (0, ix).ToLowerInvariant ();
             }

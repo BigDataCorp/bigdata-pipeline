@@ -237,7 +237,8 @@ namespace BigDataPipeline.Core.SimpleHelpers
                 T data = valueFactory (key);
                 // add or update cache
                 Set (key, data);
-                return data;
+                // get again to ensure we have the correct item
+                return Get (key);
             }
             else
             {

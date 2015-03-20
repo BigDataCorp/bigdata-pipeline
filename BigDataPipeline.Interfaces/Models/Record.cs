@@ -4,42 +4,6 @@ using System.Collections.Generic;
 
 namespace BigDataPipeline.Interfaces
 {
-    public class RecordCollection : IEnumerable<Record>
-    {
-        public Layout Layout { get; set; }
-
-        IEnumerable<Record> _records;
-
-        public RecordCollection ()
-        {
-        }
-
-        public RecordCollection (IEnumerable<Record> records)
-        {
-            _records = records;
-        }
-
-        public void SetStream (IEnumerable<Record> records)
-        {
-            _records = records;
-        }
-
-        public IEnumerable<Record> GetStream ()
-        {
-            return _records;
-        }
-
-        IEnumerator IEnumerable.GetEnumerator ()
-        {
-            return _records.GetEnumerator ();
-        }
-
-        public IEnumerator<Record> GetEnumerator ()
-        {
-            return _records.GetEnumerator ();
-        }
-    }
-
     public class Record : System.Runtime.Serialization.ISerializable
     {
         private List<object> _data = null;

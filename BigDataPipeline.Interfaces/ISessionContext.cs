@@ -3,14 +3,6 @@ using System.Collections.Generic;
 
 namespace BigDataPipeline.Interfaces
 {
-    public enum TaskOrigin
-    {
-        Scheduller,
-        Request,
-        EventHandler,
-        EmitedTask
-    }
-
     public interface ISessionContext
     {
         /// <summary>
@@ -35,7 +27,7 @@ namespace BigDataPipeline.Interfaces
         /// How this action was fired.
         /// </summary>
         /// <value>The mode.</value>
-        TaskOrigin Origin { get; set; }
+        string Origin { get; set; }
 
         /// <summary>
         /// Context execution options.
@@ -50,10 +42,15 @@ namespace BigDataPipeline.Interfaces
         string Error { get; set; }
 
         /// <summary>
+        /// Gets the current action details.
+        /// </summary>
+        ActionDetails GetCurrentAction ();
+
+        /// <summary>
         /// Gets the input streams.
         /// </summary>
         /// <returns></returns>
-        RecordCollection GetInputStreams ();
+        IRecordCollection GetInputStream ();
 
         /// <summary>
         /// Gets the logger.

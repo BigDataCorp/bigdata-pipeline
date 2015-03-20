@@ -16,6 +16,11 @@ namespace BigDataPipeline
         // threshold for overdue execution tolerance, must be a negative number of seconds
         public static TimeSpan SchedulerLowThreshold = TimeSpan.FromMinutes (15);
 
+        public PipelineJob ()
+        {
+            Enabled = true;
+        }
+
         private string _id;
         public string Id
         {

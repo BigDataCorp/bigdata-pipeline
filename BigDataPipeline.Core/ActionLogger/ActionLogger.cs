@@ -19,7 +19,7 @@ namespace BigDataPipeline.Core
         IActionLogStorage _writer;
         string _origin;
 
-        public ActionLogger (PipelineJob job, ActionDetails action , TaskOrigin origin, IActionLogStorage writer, ActionLogLevel minLogLevel, bool logExceptionStackTrace)
+        public ActionLogger (PipelineJob job, ActionDetails action , string origin, IActionLogStorage writer, ActionLogLevel minLogLevel, bool logExceptionStackTrace)
         {
             if (job == null)
                 throw new ArgumentNullException ("job");

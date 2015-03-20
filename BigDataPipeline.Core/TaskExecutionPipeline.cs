@@ -165,8 +165,11 @@ namespace BigDataPipeline.Core
                     }
                 }
                 
-                // execute task
-                ExecuteJobTask (context);
+                // ** execute task **
+                if (context.Origin == TaskOrigin.ConcurrentConsumer)
+                    ExecuteAllJobActions (context, context.Job.RootAction);
+                else 
+                    TryToExecuteJob (context);
 
                 // if it is a scheduller generated task, calculate next task execution
                 if (context.Origin == TaskOrigin.Scheduller)
@@ -200,26 +203,37 @@ namespace BigDataPipeline.Core
             }           
         }
 
-        private void ExecuteJobTask (SessionContext context)
+        private void TryToExecuteJob (SessionContext context)
         {
             // TODO: consider put an task queue to balance concurrent task executions...
 
             // put a token in the cache to sinalize the service that we have a job running
             // it is not accurate but should work in common cases. 
-            // This cached token is used on the service stop request: PipelineService.Close()
-            var padLock = new PipelineExecutionLock { Key = context.Job.Id };
-            SimpleHelpers.MemoryCache<PipelineExecutionLock>.Set (padLock.Key, padLock);
+            // This cached token is used on the service stop request: PipelineService.Close()            
+            var padLock = SimpleHelpers.MemoryCache<PipelineExecutionLock>.GetOrAdd (context.Job.Id, k => new PipelineExecutionLock { Key = k });
+            var currentCount = padLock.Inc ();
+
+            // check for execution limits
+            var limit = context.Job.Get ("behavior::concurrentJobExecutionsLimit", 0);
+            if (limit > 0 && currentCount > limit) 
+            {
+                padLock.Dec ();
+                return;                
+            }
+
+            // proceed with execution
             try
             {
-                ExecuteAllJobAction (context, context.Job.RootAction);
+                ExecuteAllJobActions (context, context.Job.RootAction);
             }
             finally
             {
-                SimpleHelpers.MemoryCache<PipelineExecutionLock>.Remove (padLock.Key);
+                if (padLock.Dec () <= 0)
+                    SimpleHelpers.MemoryCache<PipelineExecutionLock>.Remove (padLock.Key);
             }            
         }
 
-        private void ExecuteAllJobAction (SessionContext parentContext, ActionDetails action)
+        private void ExecuteAllJobActions (SessionContext parentContext, ActionDetails action)
         {
             // try to recursively execute all job actions
             if (action == null)
@@ -232,21 +246,27 @@ namespace BigDataPipeline.Core
                     action.Options.Add (opt.Key, opt.Value);
             }
 
-            // current action
+            // execute current action
             var currentContext = new SessionContext (parentContext);
             if (!ExecuteAction (currentContext, action, parentContext))
                 return;
 
-            parentContext.FinalizeAction (action.Actions == null || action.Actions.Count == 0);
+            // signal action finalization
+            currentContext.FinalizeAction ();
 
             // next actions
             if (action.Actions != null)
             {
-                foreach (var nextAction in action.Actions)
+                for (int i = 0; i < action.Actions.Count; i++)
                 {
-                    ExecuteAllJobAction (currentContext, nextAction);
+                    var nextAction = action.Actions[i];
+                    // check for internal status
+                    if (nextAction.Get ("internal::status") == "ignore")
+                        continue;
+                    // move to next action in tree branch
+                    ExecuteAllJobActions (currentContext, nextAction);
                 }
-            }            
+            }
         }
 
         /// <summary>
@@ -259,6 +279,10 @@ namespace BigDataPipeline.Core
         {
             var result = false;
 
+            // configure context
+            context.SetCurrentAction (action);
+
+            // get system options
             var svr = PipelineService.Instance;
             var systemOptions = (svr != null) ? svr.SystemOptions : new Record();
 
@@ -267,10 +291,11 @@ namespace BigDataPipeline.Core
             var jobLogger = new ActionLogger (context.Job, action, context.Origin, logWriter, context.Options.Get ("actionLogLevel", systemOptions.Get("logLevel", ActionLogLevel.Info)), context.Options.Get ("actionLogStackTrace", false));
             context.SetLogger (jobLogger);
 
-            // create module instance
-            IActionModule module = null;
+            // try to execute action
             try
-            {         
+            {
+                // create module instance
+                IActionModule module = null;
                 switch (action.Type)
                 {
                     case ModuleTypes.SystemModule:
@@ -332,7 +357,7 @@ namespace BigDataPipeline.Core
 
                 // check for input streams
                 if (previousActionContext != null && previousActionContext.HasEmitedItems ())
-                    context.SetInputStream (new RecordCollection (previousActionContext.GetEmitedItems ()));
+                    context.SetInputStream (previousActionContext.GetEmitedItems ());
 
                 // execute
                 result = module.Execute (context);
@@ -354,19 +379,6 @@ namespace BigDataPipeline.Core
             }
             
             // clean up
-            if (module != null)
-            {
-                try
-                {
-                    module = null;   
-                }
-                catch (Exception ex)
-                {
-                    jobLogger.Error (ex.Message);
-                    _logger.Error (ex);
-                }
-            }
-
             // process log
             jobLogger.Flush ();            
             logWriter.Dispose ();

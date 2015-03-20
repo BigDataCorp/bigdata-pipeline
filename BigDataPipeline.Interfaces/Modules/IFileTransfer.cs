@@ -76,5 +76,9 @@ namespace BigDataPipeline.Interfaces
         bool SendFile (Stream localFile, string destFullPath, bool closeInputStream);
 
         bool MoveFile (string localFilename, string destFilename);
+
+        Stream OpenWrite ();
+
+        Stream OpenWrite (string destFullPath);
     }
 }

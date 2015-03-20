@@ -55,6 +55,7 @@
     <Compile Include="IModuleContainer.cs" />
     <Compile Include="ISessionContext.cs" />
     <Compile Include="Models\FlexibleObject.cs" />
+    <Compile Include="Models\IRecordCollection.cs" />
     <Compile Include="Modules\IActionModule.cs" />
     <Compile Include="Models\Layout.cs" />
     <Compile Include="Models\PipelineJob.cs" />

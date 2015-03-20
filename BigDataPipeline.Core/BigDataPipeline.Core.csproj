@@ -65,6 +65,7 @@
     <Compile Include="FileTransfer\FileTransferService.cs" />
     <Compile Include="FileTransfer\HttpTransfer.cs" />
     <Compile Include="ModuleContainer.cs" />
+    <Compile Include="RecordCollection.cs" />
     <Compile Include="SessionContext.cs" />
     <Compile Include="PipelineService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
