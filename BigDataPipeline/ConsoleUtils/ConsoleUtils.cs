@@ -113,9 +113,9 @@ namespace BigDataPipeline
             // log error code and close log
             Console.WriteLine ("ExitCode = " + exitCode.ToString ());
             if (exitCode == 0)
-                LogManager.GetCurrentClassLogger ().Info ("ExitCode", exitCode.ToString ());
+                LogManager.GetCurrentClassLogger ().Info ("ExitCode " + exitCode.ToString ());
             else
-                LogManager.GetCurrentClassLogger ().Error ("ExitCode", exitCode.ToString ());
+                LogManager.GetCurrentClassLogger ().Error ("ExitCode " + exitCode.ToString ());
             LogManager.Flush ();
             // force garbage collector run
             // usefull for clearing COM interfaces or any other similar resource

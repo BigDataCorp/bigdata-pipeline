@@ -44,6 +44,7 @@ namespace BigDataPipeline
             }
             catch (Exception ex)
             {
+                _logger.Warn ("last status: " + Newtonsoft.Json.JsonConvert.SerializeObject (PipelineService.Instance.SystemStatus));
                 _logger.Fatal (ex);
                 throw ex;
             }
@@ -63,6 +64,9 @@ namespace BigDataPipeline
                 _logger.Warn ("Service stopped");
 
                 BigDataPipeline.Web.WebServer.Stop ();
+
+                if (_logger.IsInfoEnabled)
+                    _logger.Info ("last status: " + Newtonsoft.Json.JsonConvert.SerializeObject (PipelineService.Instance.SystemStatus));
             }
             catch (Exception ex)
             {

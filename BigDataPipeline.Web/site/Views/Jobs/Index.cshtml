@@ -38,7 +38,7 @@
 
 @section scripts {
     <script type="text/javascript">
-        var _page = {
+        var jobHelper = {
             //hideMessage: function () {
             //    $('#status').hide();
             //},
@@ -51,6 +51,20 @@
             //        .toggleClass('alert-info', evtType || 'info' === "info")
             //        .show();
             //}
+            actionCount: function (job) {                
+                function _count(action) {
+                    if (!action) { return 0; }
+                    var c = 1, i;
+                    if (action.Actions) {
+                        for (i = 0; i < action.Actions.length; i++) {
+                            c += _count(action.Actions[i]);
+                        }
+                    }
+                    return c;
+                }
+                if (!job) { return 0; }
+                return _count(job.RootAction);
+            }
         };
 
         //** angularJs initialization **
@@ -228,7 +242,7 @@
                             { name: 'Group', field: "Group", resizable: true },
                             { name: 'Description', field: "Description", resizable: true },
                             { name: 'Enabled', field: "Enabled", resizable: true },
-                            { name: 'Jobs', resizable: true, cellTemplate: '<div>{{ !!row.entity.RootAction ? 1 : 0 }}</div>' },
+                            { name: 'Actions', resizable: true, cellTemplate: '<div>{{ jobHelper.actionCount(row.entity) }}</div>' },
                             { name: 'Actions', displayName: '', resizable: true, enableColumnMenu: false, enableSorting: false, cellTemplate:
                                          '<div><button type="button" role="button" ng-click="grid.appScope.playJob(row.entity)" class="btn btn-default btn-small margin-horizontal-2"><i class="fa fa-play"></i></button>' +
                                          '<button type="button" role="button" ng-click="grid.appScope.removeJob(row.entity)" class="btn btn-default btn-small margin-horizontal-2"><i class="fa fa-trash-o text-danger"></i></button></div>'

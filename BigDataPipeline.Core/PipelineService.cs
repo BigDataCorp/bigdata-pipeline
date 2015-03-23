@@ -27,6 +27,11 @@ namespace BigDataPipeline.Core
             get { return _systemOptions; }
         }
 
+        public Record SystemStatus
+        {
+            get { return _systemStatus; }
+        }
+
         public Logger Logger
         {
             get { return _logger; }
@@ -54,6 +59,8 @@ namespace BigDataPipeline.Core
 
         public void Initialize (string modulesFolder, string workFolder, Record systemOptions, params Type[] listOfAdditionalInterfaces)
         {
+            _instance = this;
+
             _logger = NLog.LogManager.GetLogger ("PipelineService");
             _logger.Debug ("[start] Initialization...");
 
@@ -61,6 +68,9 @@ namespace BigDataPipeline.Core
             _systemOptions = systemOptions ?? new Record ();
             _systemOptions.Set ("workFolder", workFolder);
             _systemOptions.Set ("modulesFolder", modulesFolder);
+
+            if (_logger.IsTraceEnabled)
+                _logger.Trace ("System options: " + Newtonsoft.Json.JsonConvert.SerializeObject (_systemOptions));
 
             // load modules
             LoadModules (modulesFolder, listOfAdditionalInterfaces);
@@ -92,8 +102,6 @@ namespace BigDataPipeline.Core
             // set maximum lock duration for a pipeline job execution
             SimpleHelpers.MemoryCache<PipelineExecutionLock>.Expiration = TimeSpan.FromMinutes (60);
 
-            _instance = this;
-
             // continue with some async initialization
             Task.Run (() => PrepareSystemModules ());
 
@@ -111,7 +119,9 @@ namespace BigDataPipeline.Core
                 typeof(ISystemModule),
                 typeof(IStorageModule),
                 typeof(IAccessControlModule),
-                typeof(IActionLogStorage)
+                typeof(IActionLogStorage),
+                typeof(IFileTransferService),
+                typeof(IFileTransfer)
             }.Concat (listOfAdditionalInterfaces).ToArray ();
 
             // load modules
@@ -161,48 +171,35 @@ namespace BigDataPipeline.Core
             string storageModule = systemOptions.Get ("storageModule", "");
 
             string storageConnectionString = systemOptions.Get ("storageConnectionString", "");
-            string storageType = storageModule;
-            if (storageConnectionString != null && storageConnectionString.Contains ("://"))
-                storageType = storageConnectionString.Substring (0, storageConnectionString.IndexOf ("://"));
-
-            if (storageType == "mongodb")
-                storageType = "MongoDbStorageModule";
-            else if (storageType == "sqlite")
-                storageType = "SqliteStorageModule";
+            if (String.IsNullOrWhiteSpace (storageModule) && storageConnectionString != null && storageConnectionString.Contains ("://"))
+                storageModule = storageConnectionString.Substring (0, storageConnectionString.IndexOf ("://"));
+            if (storageModule == "mongodb")
+                storageModule = "MongoDbStorageModule";
+            else if (storageModule == "sqlite")
+                storageModule = "SqliteStorageModule";
 
             // try to load selected storage or clear previous selection
-            _storage = (!String.IsNullOrEmpty (storageModule)) ? ModuleContainer.Instance.GetInstance (storageModule) as IStorageModule : null;
+            if (!String.IsNullOrWhiteSpace (storageModule))
+                _storage = ModuleContainer.Instance.GetInstance (storageModule) as IStorageModule;
+            else
+                _storage = ModuleContainer.Instance.GetInstanceOf<IStorageModule> ();
 
             // get storage modules
-            var storagesModules = new List<string>();
-            foreach (var s in ModuleContainer.Instance.GetTypesOf<IStorageModule> ())
-            {
-                storagesModules.Add (s.Name);
-
-                // if storage already selected, skip...
-                if (_storage != null)
-                    continue;
-                if (String.IsNullOrWhiteSpace (storageType) ||
-                    s.Name.Equals (storageType, StringComparison.OrdinalIgnoreCase) ||
-                    s.FullName.Equals (storageType, StringComparison.OrdinalIgnoreCase))
-                {
-                    _storage = ModuleContainer.Instance.GetInstance (s) as IStorageModule;
-                }
-            }
+            var storagesModules = ModuleContainer.Instance.GetTypesOf<IStorageModule> ().Select (s => s.Name).ToList ();
 
             // set system information
             _systemStatus.Set ("storagesModules", storagesModules);
             _systemStatus.Set ("currentStoragesModule", _storage != null ? _storage.GetType().Name : "none");
 
-            // try to initialize
-            if (_storage != null)
-            {
-                _storage.Initialize (systemOptions);
-            } 
-            else 
-            {
+            if (_logger.IsTraceEnabled)
+                _logger.Trace ("storagesModules: " + String.Join (", ", storagesModules));
+
+            // sanity check
+            if (_storage == null)
                 throw new Exception ("Failed to load storage module...");
-            }
+
+            // try to initialize
+            _storage.Initialize (systemOptions);
 
             _logger.Debug ("[done] Preparing storage...");
         }
@@ -212,11 +209,11 @@ namespace BigDataPipeline.Core
             _logger.Debug ("[start] Preparing Action Logger Output...");
 
             // set default options
-            if (String.IsNullOrEmpty (systemOptions.Get ("actionLoggerOutputModule", "")))
+            if (String.IsNullOrWhiteSpace (systemOptions.Get ("actionLoggerOutputModule", "")))
                 systemOptions.Set ("actionLoggerOutputModule", "BigDataPipeline.Core.ActionLoggerInMemoryOutput");
-            if (String.IsNullOrEmpty (systemOptions.Get ("actionLoggerDatabaseName", "")))
+            if (String.IsNullOrWhiteSpace (systemOptions.Get ("actionLoggerDatabaseName", "")))
                 systemOptions.Set ("actionLoggerDatabaseName", systemOptions.Get ("storageDatabaseName", ""));
-            if (String.IsNullOrEmpty (systemOptions.Get ("actionLoggerConnectionString", "")))
+            if (String.IsNullOrWhiteSpace (systemOptions.Get ("actionLoggerConnectionString", "")))
                 systemOptions.Set ("actionLoggerConnectionString", systemOptions.Get ("storageConnectionString", ""));
                     
             // check configured storage
@@ -242,24 +239,17 @@ namespace BigDataPipeline.Core
             _logger.Debug ("[start] Preparing access control module...");
 
             // check configured module
-            string accessControlModule = systemOptions.Get ("accessControlModule", "");            
+            string accessControlModuleName = systemOptions.Get ("accessControlModule", "");            
 
             // get storage module
-            var accessControlModules = new List<string> ();
-            _accessControlModule = null;
-            foreach (var s in ModuleContainer.Instance.GetTypesOf<IAccessControlModule> ())
-            {
-                accessControlModules.Add (s.Name);
-                if (_accessControlModule != null)
-                    continue;
-                if (String.IsNullOrWhiteSpace (accessControlModule) ||
-                    s.Name.Equals (accessControlModule, StringComparison.OrdinalIgnoreCase) ||
-                    s.FullName.Equals (accessControlModule, StringComparison.OrdinalIgnoreCase))
-                {
-                    _accessControlModule = ModuleContainer.Instance.GetInstance (s) as IAccessControlModule;
-                }
-            }
+            var accessControlModules = ModuleContainer.Instance.GetTypesOf<IAccessControlModule> ().Select (s => s.Name).ToList ();
 
+            // try to load by name or get the first available module
+            if (!String.IsNullOrWhiteSpace (accessControlModuleName))
+                _accessControlModule = ModuleContainer.Instance.GetInstance (accessControlModuleName) as IAccessControlModule;
+            else
+                _accessControlModule = ModuleContainer.Instance.GetInstanceOf<IAccessControlModule> ();
+            
             // set system information
             _systemStatus.Set ("accessControlModules", accessControlModules);
             _systemStatus.Set ("currentAccessControlModule", _accessControlModule != null ? _accessControlModule.GetType ().Name : "none");
