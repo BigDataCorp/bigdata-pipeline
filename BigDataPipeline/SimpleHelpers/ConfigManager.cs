@@ -147,7 +147,7 @@ namespace BigDataPipeline.SimpleHelpers
             {
                 item.Value = value.ToString ();
             }
-            mgr.Save (System.Configuration.ConfigurationSaveMode.Modified);
+            Save ();
         }
 
         /// <summary>
@@ -170,7 +170,7 @@ namespace BigDataPipeline.SimpleHelpers
                     item.Value = i.Value;
                 }
             }
-            mgr.Save (System.Configuration.ConfigurationSaveMode.Modified);
+            Save ();
         }
 
         /// <summary>
@@ -184,7 +184,20 @@ namespace BigDataPipeline.SimpleHelpers
             if (item != null)
             {
                 cfg.Remove (key);
-                mgr.Save (System.Configuration.ConfigurationSaveMode.Modified);
+                Save ();
+            }
+        }
+
+        static bool Save ()
+        {
+            try
+            {
+                GetConfig ().Save (System.Configuration.ConfigurationSaveMode.Modified);
+                return true;
+            }
+            catch
+            {
+                return false;
             }
         }
 

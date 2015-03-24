@@ -6,7 +6,7 @@ using BigDataPipeline.Interfaces;
 
 namespace BigDataPipeline.Core
 {
-    public class FileTransferService : IFileTransferService
+    public class FileTransferService : IFileService
     {
         Dictionary<string, Type> _fileTransfers = null;
 

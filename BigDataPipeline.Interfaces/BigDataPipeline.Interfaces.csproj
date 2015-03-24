@@ -48,7 +48,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="IFileTransferService.cs" />
+    <Compile Include="IFileService.cs" />
     <Compile Include="IActionLogger.cs" />
     <Compile Include="ActionLogEvent.cs" />
     <Compile Include="Extensions\CommonExtensions.cs" />

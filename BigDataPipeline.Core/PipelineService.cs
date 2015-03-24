@@ -119,9 +119,7 @@ namespace BigDataPipeline.Core
                 typeof(ISystemModule),
                 typeof(IStorageModule),
                 typeof(IAccessControlModule),
-                typeof(IActionLogStorage),
-                typeof(IFileTransferService),
-                typeof(IFileTransfer)
+                typeof(IActionLogStorage)
             }.Concat (listOfAdditionalInterfaces).ToArray ();
 
             // load modules
@@ -293,7 +291,7 @@ namespace BigDataPipeline.Core
 
         public void Execute ()
         {
-            _logger.Debug ("Execution phase start");
+            _logger.Trace ("Execution phase start");
 
             // check for storage intialization
             if (_storage == null)
@@ -322,7 +320,7 @@ namespace BigDataPipeline.Core
 
             EventExecutionPipeline.Instance.EndUpdatePhase ();
 
-            _logger.Debug ("Execution phase end");
+            _logger.Trace ("Execution phase end");
         }
 
         public void CheckSchedullers (PipelineJob job)

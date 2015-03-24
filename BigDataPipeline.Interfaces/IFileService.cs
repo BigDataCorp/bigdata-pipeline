@@ -7,7 +7,7 @@ using System.Text;
 namespace BigDataPipeline.Interfaces
 {
 
-    public interface IFileTransferService
+    public interface IFileService
     {
         IFileTransfer Open (string connectionUri, BigDataPipeline.FlexibleObject extraOptions = null);
     }
@@ -57,7 +57,7 @@ namespace BigDataPipeline.Interfaces
     /// file:///c:/[path]
     /// 
     /// </summary>
-    public class FileTransferConnectionInfo : BigDataPipeline.FlexibleObject
+    public class FileServiceConnectionInfo : BigDataPipeline.FlexibleObject
     {
         public const int DefaultReadBufferSize = 2 * 1024 * 1024;
         public const int DefaultWriteBufferSize = 512 * 1024;
@@ -134,9 +134,9 @@ namespace BigDataPipeline.Interfaces
         public bool SearchTopDirectoryOnly { get; set; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="FileTransferConnectionInfo" /> class.
+        /// Initializes a new instance of the <see cref="FileServiceConnectionInfo" /> class.
         /// </summary>
-        public FileTransferConnectionInfo ()
+        public FileServiceConnectionInfo ()
         {
             RetryCount = 3;
             RetryWaitMs = 500;
@@ -144,40 +144,40 @@ namespace BigDataPipeline.Interfaces
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="FileTransferConnectionInfo" /> class.
+        /// Initializes a new instance of the <see cref="FileServiceConnectionInfo" /> class.
         /// </summary>
         /// <param name="connectionUri">The connection URI.</param>
-        public FileTransferConnectionInfo (string connectionUri) : this ()
+        public FileServiceConnectionInfo (string connectionUri) : this ()
         {
             Parse (connectionUri);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="FileTransferConnectionInfo" /> class.
+        /// Initializes a new instance of the <see cref="FileServiceConnectionInfo" /> class.
         /// </summary>
         /// <param name="uriScheme">The URI scheme.</param>
-        public FileTransferConnectionInfo (Uri uriScheme) : this ()
+        public FileServiceConnectionInfo (Uri uriScheme) : this ()
         {
             Parse (uriScheme);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="FileTransferConnectionInfo" /> class.
+        /// Initializes a new instance of the <see cref="FileServiceConnectionInfo" /> class.
         /// </summary>
         /// <param name="connectionUri">The connection URI.</param>
         /// <param name="extraOptions">The extra options.</param>
-        public FileTransferConnectionInfo (string connectionUri, IEnumerable<KeyValuePair<string, string>> extraOptions) : this ()
+        public FileServiceConnectionInfo (string connectionUri, IEnumerable<KeyValuePair<string, string>> extraOptions) : this ()
         {
             Parse (connectionUri);
             SetExtraOptions (extraOptions);            
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="FileTransferConnectionInfo" /> class.
+        /// Initializes a new instance of the <see cref="FileServiceConnectionInfo" /> class.
         /// </summary>
         /// <param name="uriScheme">The URI scheme.</param>
         /// <param name="extraOptions">The extra options.</param>
-        public FileTransferConnectionInfo (Uri uriScheme, IEnumerable<KeyValuePair<string, string>> extraOptions) : this ()
+        public FileServiceConnectionInfo (Uri uriScheme, IEnumerable<KeyValuePair<string, string>> extraOptions) : this ()
         {
             Parse (uriScheme);
             SetExtraOptions (extraOptions);

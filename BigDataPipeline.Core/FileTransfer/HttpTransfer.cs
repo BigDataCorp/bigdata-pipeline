@@ -23,12 +23,12 @@ namespace BigDataPipeline.Core
             return serviceSchemes;
         }
 
-        public FileTransferConnectionInfo ParseConnectionUri (string connectionUri, IEnumerable<KeyValuePair<string, string>> extraOptions)
+        public FileServiceConnectionInfo ParseConnectionUri (string connectionUri, IEnumerable<KeyValuePair<string, string>> extraOptions)
         {
-            return new FileTransferConnectionInfo (connectionUri, extraOptions);
+            return new FileServiceConnectionInfo (connectionUri, extraOptions);
         }
 
-        public FileTransferConnectionInfo Details { get; private set; }
+        public FileServiceConnectionInfo Details { get; private set; }
 
         public bool Status { get; private set; }
 
@@ -53,7 +53,7 @@ namespace BigDataPipeline.Core
             LastError = message;
         }
 
-        public bool Open (FileTransferConnectionInfo details)
+        public bool Open (FileServiceConnectionInfo details)
         {
             Details = details;
             if (Details.RetryCount <= 0)
@@ -157,9 +157,9 @@ namespace BigDataPipeline.Core
 
             try
             {
-                using (var output = new FileStream (newFile, FileMode.Create, FileAccess.Write, FileShare.Delete | FileShare.Read, FileTransferConnectionInfo.DefaultWriteBufferSize))
+                using (var output = new FileStream (newFile, FileMode.Create, FileAccess.Write, FileShare.Delete | FileShare.Read, FileServiceConnectionInfo.DefaultWriteBufferSize))
                 {
-                    f.FileStream.CopyTo (output, FileTransferConnectionInfo.DefaultWriteBufferSize >> 2);
+                    f.FileStream.CopyTo (output, FileServiceConnectionInfo.DefaultWriteBufferSize >> 2);
                 }
 
                 // check if we must remove file
@@ -212,9 +212,9 @@ namespace BigDataPipeline.Core
 
                 try
                 {
-                    using (var file = new FileStream (newFile, FileMode.Create, FileAccess.Write, FileShare.Delete | FileShare.Read, FileTransferConnectionInfo.DefaultWriteBufferSize))
+                    using (var file = new FileStream (newFile, FileMode.Create, FileAccess.Write, FileShare.Delete | FileShare.Read, FileServiceConnectionInfo.DefaultWriteBufferSize))
                     {
-                        f.FileStream.CopyTo (file, FileTransferConnectionInfo.DefaultWriteBufferSize >> 2);
+                        f.FileStream.CopyTo (file, FileServiceConnectionInfo.DefaultWriteBufferSize >> 2);
                     }
 
                     // check if we must remove file

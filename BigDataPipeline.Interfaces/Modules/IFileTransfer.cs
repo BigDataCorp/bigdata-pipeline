@@ -20,11 +20,11 @@ namespace BigDataPipeline.Interfaces
         /// Custom options for this service:<para/>
         /// retryCount (all), retryWaitMs (all), searchTopDirectoryOnly (some), sshKeyFiles (SFTP), useReducedRedundancy (S3), makePublic (S3), partSize (S3)
         /// </param>
-        FileTransferConnectionInfo ParseConnectionUri (string connectionUri, IEnumerable<KeyValuePair<string, string>> extraOptions);
+        FileServiceConnectionInfo ParseConnectionUri (string connectionUri, IEnumerable<KeyValuePair<string, string>> extraOptions);
 
         string LastError { get; }
 
-        FileTransferConnectionInfo Details { get; }
+        FileServiceConnectionInfo Details { get; }
 
         bool Status { get; }
 
@@ -41,7 +41,7 @@ namespace BigDataPipeline.Interfaces
         /// c:/[path]/[file name or wildcard expression]
         /// 
         /// </summary>
-        bool Open (FileTransferConnectionInfo details);
+        bool Open (FileServiceConnectionInfo details);
         
         bool IsOpened ();
 

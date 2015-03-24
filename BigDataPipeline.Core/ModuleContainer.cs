@@ -53,7 +53,7 @@ namespace BigDataPipeline.Core
         /// </summary>
         /// <param name="modulesFolder">List of folders where plugin/modules are located.</param>
         /// <param name="listOfInterfaces">The list of interfaces or base types.</param>
-        public void LoadModules (string[] modulesFolder, Type[] listOfInterfaces)
+        public void LoadModules (string[] modulesFolder, Type[] listOfInterfaces = null)
         {
             lock (padlock)
             {
@@ -68,7 +68,7 @@ namespace BigDataPipeline.Core
         /// </summary>
         /// <param name="modulesFolder">The modules folder.</param>
         /// <param name="listOfInterfaces">The list of interfaces or base types.</param>
-        public void LoadModules (string modulesFolder, Type[] listOfInterfaces)
+        public void LoadModules (string modulesFolder, Type[] listOfInterfaces = null)
         {
             lock (padlock)
             {
@@ -78,27 +78,15 @@ namespace BigDataPipeline.Core
         
         private void ContainerInitialization (string[] modulesFolder, Type[] listOfInterfaces)
         {
-            loadedAssemblies = new Dictionary<string, Assembly> (StringComparer.Ordinal);
-
-            // if we have no interface, create an empty list
-            if (listOfInterfaces == null)
-                listOfInterfaces = new Type[0];
+            if (loadedAssemblies == null)
+                loadedAssemblies = new Dictionary<string, Assembly> (StringComparer.Ordinal);
 
             // get base folder
             var baseAddress = AppDomain.CurrentDomain.BaseDirectory;
             // prepare extension folder
             if (modulesFolder == null || modulesFolder.Length == 0 || (modulesFolder.Length == 1 && String.IsNullOrEmpty (modulesFolder[0])))
                 modulesFolder = new string[] { Path.Combine (baseAddress, "modules") };
-
-            // prepare list of loaded interfaces
-            for (int i = 0; i < listOfInterfaces.Length; i++)
-            {
-                if (!exportedTypesByBaseType.ContainsKey (listOfInterfaces[i].FullName))
-                {
-                    exportedTypesByBaseType[listOfInterfaces[i].FullName] = new List<Type> ();
-                } 
-            }
-
+            
             // get mscorelib assembly
             //Assembly mscorelib = 333.GetType ().Assembly;
 
@@ -119,7 +107,7 @@ namespace BigDataPipeline.Core
                 AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
             }
 
-            var ignoredAssemblies = new Dictionary<string,string> (StringComparer.Ordinal);
+            HashSet<string> invalidAssemblies = null;
 
             // check the directory exists
             foreach (var folder in modulesFolder)
@@ -138,25 +126,28 @@ namespace BigDataPipeline.Core
                     // check if file has a valid assembly extension
                     if (!file.Extension.EndsWith (".dll", StringComparison.OrdinalIgnoreCase) &&
                         !file.Extension.EndsWith (".exe", StringComparison.OrdinalIgnoreCase))
-                        continue;
-                    // try to avoid loading dlls with native code
-                    if (file.FullName.IndexOf ("x86", StringComparison.OrdinalIgnoreCase) > 0 ||
-                        file.FullName.IndexOf ("x64", StringComparison.OrdinalIgnoreCase) > 0 ||
-                        file.FullName.IndexOf ("interop", StringComparison.OrdinalIgnoreCase) > 0)
-                        continue;
+                        continue;                    
 
                     // try to get assembly full name: "Assembly text name, Version, Culture, PublicKeyToken"
                     // lets ignore it if we are unable to load it (access denied, invalid assembly or native code, etc...)
-                    if (ignoredAssemblies.ContainsKey (file.Name))
+                    if (invalidAssemblies != null && invalidAssemblies.Contains (file.Name))
                         continue;
                     string assemblyName = null;
                     try
                     { 
                         assemblyName = AssemblyName.GetAssemblyName (file.FullName).FullName;
                     }
+                    catch (BadImageFormatException badImage)
+                    {
+                        if (invalidAssemblies == null)
+                            invalidAssemblies = new HashSet<string> (StringComparer.Ordinal);
+                        invalidAssemblies.Add (file.Name);
+                        continue;
+                    }
                     catch (Exception ex) 
                     {
-                        ignoredAssemblies[file.Name] = ex.GetType ().Name + ", location: " + file.FullName.Replace (baseAddress, "./").Replace ('\\', '/');
+                        _logger.Warn ("Assembly ignored. Load error: " + 
+                            ex.GetType ().Name + ", location: " + file.FullName.Replace (baseAddress, "./").Replace ('\\', '/'));
                         continue;
                     }
 
@@ -183,24 +174,27 @@ namespace BigDataPipeline.Core
             }
 
             // try to load derived types
-            SearchForImplementations (listOfInterfaces);
-            
-            // log initialization status
-            if (ignoredAssemblies.Count > 0)
-            {
-                _logger.Info ("Assemblies ignorados: " + Environment.NewLine + 
-                    "[" + 
-                    Environment.NewLine +
-                    String.Join ("," + Environment.NewLine, ignoredAssemblies.Select (i => i.Key + ": " + i.Value)) + Environment.NewLine +
-                    "]");
-            }
+            SearchForImplementations (listOfInterfaces);         
         }
  
         private void SearchForImplementations (Type[] listOfInterfaces)
         {
+            // sanity check
+            if (listOfInterfaces == null || listOfInterfaces.Length == 0)
+                return;
+
             // check if first assembly scan was executed
             if (loadedAssemblies == null)
                 ContainerInitialization (null, listOfInterfaces);
+
+            // prepare list of loaded interfaces
+            for (int i = 0; i < listOfInterfaces.Length; i++)
+            {
+                if (!exportedTypesByBaseType.ContainsKey (listOfInterfaces[i].FullName))
+                {
+                    exportedTypesByBaseType[listOfInterfaces[i].FullName] = new List<Type> ();
+                }
+            }
 
             // try to load derived types
             try

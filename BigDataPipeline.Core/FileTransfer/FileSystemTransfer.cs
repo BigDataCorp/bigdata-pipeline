@@ -32,12 +32,12 @@ namespace BigDataPipeline.Core
             return serviceSchemes;
         }
 
-        public FileTransferConnectionInfo ParseConnectionUri (string connectionUri, IEnumerable<KeyValuePair<string, string>> extraOptions)
+        public FileServiceConnectionInfo ParseConnectionUri (string connectionUri, IEnumerable<KeyValuePair<string, string>> extraOptions)
         {
-            return new FileTransferConnectionInfo (connectionUri, extraOptions);
+            return new FileServiceConnectionInfo (connectionUri, extraOptions);
         }
 
-        public FileTransferConnectionInfo Details { get; private set; }
+        public FileServiceConnectionInfo Details { get; private set; }
 
         public bool Status { get; private set; }
 
@@ -62,7 +62,7 @@ namespace BigDataPipeline.Core
             LastError = message;
         }
 
-        public bool Open (FileTransferConnectionInfo details)
+        public bool Open (FileServiceConnectionInfo details)
         {
             Details = details;
             if (Details.RetryCount <= 0)
@@ -131,7 +131,7 @@ namespace BigDataPipeline.Core
             return new StreamTransferInfo
             {
                 FileName = file,
-                FileStream = new FileStream (file, FileMode.Open, FileAccess.Read, FileShare.Delete | FileShare.Read, FileTransferConnectionInfo.DefaultReadBufferSize)
+                FileStream = new FileStream (file, FileMode.Open, FileAccess.Read, FileShare.Delete | FileShare.Read, FileServiceConnectionInfo.DefaultReadBufferSize)
             };
         }
 
@@ -144,7 +144,7 @@ namespace BigDataPipeline.Core
                 yield return new StreamTransferInfo
                 {
                     FileName = f.FileName,
-                    FileStream = new FileStream (f.FileName, FileMode.Open, FileAccess.Read, FileShare.Delete | FileShare.Read, FileTransferConnectionInfo.DefaultReadBufferSize)
+                    FileStream = new FileStream (f.FileName, FileMode.Open, FileAccess.Read, FileShare.Delete | FileShare.Read, FileServiceConnectionInfo.DefaultReadBufferSize)
                 };
             }
         }
@@ -158,7 +158,7 @@ namespace BigDataPipeline.Core
                 yield return new StreamTransferInfo
                 {
                     FileName = f.FileName,
-                    FileStream = new FileStream (f.FileName, FileMode.Open, FileAccess.Read, FileShare.Delete | FileShare.Read, FileTransferConnectionInfo.DefaultReadBufferSize)
+                    FileStream = new FileStream (f.FileName, FileMode.Open, FileAccess.Read, FileShare.Delete | FileShare.Read, FileServiceConnectionInfo.DefaultReadBufferSize)
                 };
             }
         }
@@ -178,9 +178,9 @@ namespace BigDataPipeline.Core
 
             try
             {
-                using (var output = new FileStream (newFile, FileMode.Create, FileAccess.Write, FileShare.Delete | FileShare.Read, FileTransferConnectionInfo.DefaultWriteBufferSize))
+                using (var output = new FileStream (newFile, FileMode.Create, FileAccess.Write, FileShare.Delete | FileShare.Read, FileServiceConnectionInfo.DefaultWriteBufferSize))
                 {
-                    f.FileStream.CopyTo (output, FileTransferConnectionInfo.DefaultWriteBufferSize >> 2);
+                    f.FileStream.CopyTo (output, FileServiceConnectionInfo.DefaultWriteBufferSize >> 2);
                 }
 
                 // check if we must remove file
@@ -233,9 +233,9 @@ namespace BigDataPipeline.Core
 
                 try
                 {
-                    using (var file = new FileStream (newFile, FileMode.Create, FileAccess.Write, FileShare.Delete | FileShare.Read, FileTransferConnectionInfo.DefaultWriteBufferSize))
+                    using (var file = new FileStream (newFile, FileMode.Create, FileAccess.Write, FileShare.Delete | FileShare.Read, FileServiceConnectionInfo.DefaultWriteBufferSize))
                     {
-                        f.FileStream.CopyTo (file, FileTransferConnectionInfo.DefaultWriteBufferSize >> 2);
+                        f.FileStream.CopyTo (file, FileServiceConnectionInfo.DefaultWriteBufferSize >> 2);
                     }
 
                     // check if we must remove file
@@ -308,9 +308,9 @@ namespace BigDataPipeline.Core
             {
                 FileTransferHelpers.CreateDirectory (System.IO.Path.GetDirectoryName (destFullPath));
 
-                using (var file = new FileStream (destFullPath, FileMode.Create, FileAccess.Write, FileShare.Delete | FileShare.Read, FileTransferConnectionInfo.DefaultWriteBufferSize))
+                using (var file = new FileStream (destFullPath, FileMode.Create, FileAccess.Write, FileShare.Delete | FileShare.Read, FileServiceConnectionInfo.DefaultWriteBufferSize))
                 {
-                    localFile.CopyTo (file, FileTransferConnectionInfo.DefaultWriteBufferSize >> 2);
+                    localFile.CopyTo (file, FileServiceConnectionInfo.DefaultWriteBufferSize >> 2);
                 }
                 _setStatus (true);
             }
@@ -341,7 +341,7 @@ namespace BigDataPipeline.Core
         {
             FileTransferHelpers.CreateDirectory (System.IO.Path.GetDirectoryName (destFullPath));
             // upload
-            return new FileStream (destFullPath, FileMode.Create, FileAccess.Write, FileShare.Delete | FileShare.Read, FileTransferConnectionInfo.DefaultWriteBufferSize);
+            return new FileStream (destFullPath, FileMode.Create, FileAccess.Write, FileShare.Delete | FileShare.Read, FileServiceConnectionInfo.DefaultWriteBufferSize);
         }
     }
 }

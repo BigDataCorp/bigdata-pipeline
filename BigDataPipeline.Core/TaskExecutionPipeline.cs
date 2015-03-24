@@ -147,8 +147,6 @@ namespace BigDataPipeline.Core
                 // release timer
                 context.ClearTimerReference ();
 
-                _logger.Debug ("Executing collection job: {0} {1}.{2} ", context.Job.Id, context.Job.Group ?? "", context.Job.Name ?? "");
-
                 // special preparation for schedulled tasks
                 if (context.Origin == TaskOrigin.Scheduller)
                 {
@@ -210,16 +208,20 @@ namespace BigDataPipeline.Core
             // put a token in the cache to sinalize the service that we have a job running
             // it is not accurate but should work in common cases. 
             // This cached token is used on the service stop request: PipelineService.Close()            
-            var padLock = SimpleHelpers.MemoryCache<PipelineExecutionLock>.GetOrAdd (context.Job.Id, k => new PipelineExecutionLock { Key = k });
+            var padLock = SimpleHelpers.MemoryCache<PipelineExecutionLock>.GetOrAdd (context.Job.Id, k => new PipelineExecutionLock { Key = k });            
+            SimpleHelpers.MemoryCache<PipelineExecutionLock>.Renew (context.Job.Id);
             var currentCount = padLock.Inc ();
 
             // check for execution limits
             var limit = context.Job.Get ("behavior::concurrentJobExecutionsLimit", 0);
             if (limit > 0 && currentCount > limit) 
             {
-                padLock.Dec ();
+                padLock.Dec ();                
                 return;                
             }
+
+            // log execution start
+            _logger.Debug ("Executing collection job: {0} {1}.{2} ", context.Job.Id, context.Job.Group ?? "", context.Job.Name ?? "");
 
             // proceed with execution
             try

@@ -44,6 +44,7 @@ namespace BigDataPipeline
             }
             catch (Exception ex)
             {
+                if (_logger.IsWarnEnabled && PipelineService.Instance != null)
                 _logger.Warn ("last status: " + Newtonsoft.Json.JsonConvert.SerializeObject (PipelineService.Instance.SystemStatus));
                 _logger.Fatal (ex);
                 throw ex;
@@ -65,7 +66,7 @@ namespace BigDataPipeline
 
                 BigDataPipeline.Web.WebServer.Stop ();
 
-                if (_logger.IsInfoEnabled)
+                if (_logger.IsInfoEnabled && PipelineService.Instance != null)
                     _logger.Info ("last status: " + Newtonsoft.Json.JsonConvert.SerializeObject (PipelineService.Instance.SystemStatus));
             }
             catch (Exception ex)
@@ -180,8 +181,8 @@ namespace BigDataPipeline
             // initialize web interface (self host)
             string siteRootPath = null;
 #if DEBUG
-                    // change root path to allow dinamic update of the page content
-                    siteRootPath = System.IO.Path.Combine (AppDomain.CurrentDomain.BaseDirectory, @"site").Replace (@"BigDataPipeline\bin\Debug", "BigDataPipeline.Web");
+            // change root path to allow dinamic update of the page content
+            siteRootPath = System.IO.Path.Combine (AppDomain.CurrentDomain.BaseDirectory).Replace (@"BigDataPipeline\bin\Debug", "BigDataPipeline.Web");
 #endif
             BigDataPipeline.Web.WebServer.Start (SimpleHelpers.ConfigManager.Get<int> ("webInterfacePort", 8080), siteRootPath, SimpleHelpers.ConfigManager.Get ("webVirtualDirectoryPath", "/bigdatapipeline"), SimpleHelpers.ConfigManager.Get ("webOpenFirewallExceptions", false));
             if (Environment.UserInteractive && SimpleHelpers.ConfigManager.Get<bool> ("webInterfaceDisplayOnBrowserOnStart", false))
