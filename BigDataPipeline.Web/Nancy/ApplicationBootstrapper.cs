@@ -89,10 +89,14 @@ namespace BigDataPipeline.Web
         {
             Nancy.Diagnostics.DiagnosticsHook.Disable (pipelines);
             StaticConfiguration.CaseSensitive = false;
-            StaticConfiguration.DisableErrorTraces = true;
-            StaticConfiguration.EnableRequestTracing = false;            
+            StaticConfiguration.DisableErrorTraces = false;
+            StaticConfiguration.EnableRequestTracing = true;
             Nancy.Json.JsonSettings.MaxJsonLength = 10 * 1024 * 1024;
 
+#if DEBUG
+            StaticConfiguration.DisableErrorTraces = true;
+            StaticConfiguration.EnableRequestTracing = false;
+#endif
             // log any errors
             pipelines.OnError.AddItemToStartOfPipeline ((ctx, ex) =>
             {

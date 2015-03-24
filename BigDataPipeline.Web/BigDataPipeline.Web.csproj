@@ -120,11 +120,14 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="README.txt" />
+    <Content Include="site\scripts\datetimepicker.js" />
     <Content Include="site\scripts\jquery-1.11.2.min.js" />
+    <Content Include="site\scripts\jquery-cron.min.js" />
     <Content Include="site\scripts\select2\select2.js" />
     <Content Include="site\scripts\select2\select2.min.js" />
     <Content Include="site\scripts\select2\select2_helpers.js" />
     <Content Include="site\scripts\select2\select2_locale_pt-BR.js" />
+    <Content Include="site\styles\datetimepicker.css" />
     <Content Include="site\styles\img\expand.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -141,9 +144,6 @@
     <Content Include="site\scripts\angular-touch.min.js" />
     <Content Include="site\scripts\angular.min.js" />
     <Content Include="site\scripts\html5shiv.js">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="site\scripts\jquery-cron-min.js">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="site\scripts\jquery-gentleSelect-min.js">

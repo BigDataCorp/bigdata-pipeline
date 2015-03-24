@@ -35,7 +35,7 @@
     -webkit-box-shadow: 0 0 12px #555;
     box-shadow: 0 0 12px #555;
 
-    margin: 0; padding: 0;
+    margin: 0; padding: 0; 
 }
 
 .gentleselect-dialog > ul { padding: 0; margin: 0; list-style: none; }

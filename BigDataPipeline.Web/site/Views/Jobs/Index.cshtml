@@ -14,22 +14,199 @@
     <div class="row">
         <div class="col-sm-12">
             <button class="btn btn-default col-sm-1 margin-right-16" role="button" ng-click="refresh()">Refresh</button>
+            <button class="btn btn-default col-sm-1 margin-right-16" role="button" ng-click="addNewJob()">Add</button>
         </div>
-    </div>    
+    </div>
 
     <div class="separator-8"></div>
 
-    <div id="dataTableJobs" ui-grid="dataTableJobs" ui-grid-selection ui-grid-auto-resize style="height:400px;"></div>
+    <div id="dataTableJobs" ui-grid="dataTableJobs" ui-grid-selection ui-grid-auto-resize ui-grid-resize-columns ng-style="getTableJobsHeight()"></div>
 
-    <div class="separator-8"></div>
+    <div class="separator-16"></div>
 
-    <div class="row">
+    <div class="row" id="nav-jobDetails">
         <div class="col-sm-12">
-            <div class="form-group">
-                <textarea class="form-control" rows="22" id="job_textarea" ng-model="jobTextContent"></textarea>
+            <div role="tabpanel">
+                <!-- Nav tabs -->
+                <ul class="nav nav-tabs" role="tablist" id="editAreaNavTabs">
+                    <li role="presentation" class="active"><a href="#editAsForm" aria-controls="editAsForm" role="tab" data-toggle="tab">Edit as Form</a></li>
+                    <li role="presentation"><a href="#editAsJson" aria-controls="editAsJson" role="tab" data-toggle="tab">Edit as Json</a></li>
+                </ul>
+
+                <!-- Tab panes -->
+                <div class="tab-content">
+                    <div role="tabpanel" class="tab-pane active" id="editAsForm">
+                        <div class="separator-8"></div>
+                        <h3>Job details</h3>
+
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    Name:<br />
+                                    <input type="text" class="form-control" ng-model="selectedJob.Name" />
+                                </div>
+                                <div class="form-group">
+                                    Group:<br />
+                                    <input type="text" class="form-control" ng-model="selectedJob.Group" />
+                                </div>
+                                <div class="form-group">
+                                    Last Execution date/time:<br />
+                                    <input type="text" class="form-control" ng-model="selectedJob.LastExecution" readonly />
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    Description:<br />
+                                    <textarea class="form-control" rows="10" ng-model="selectedJob.Description"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+                        <h3>Job execution triggers</h3>
+
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="form-group" title="Enable/disable this job execution." ng-class="{'text-primary': selectedJob.Enabled, 'bg-danger': !selectedJob.Enabled}">
+                                    <div class="checkbox">
+                                        <label><input type="checkbox" ng-model="selectedJob.Enabled" /> Is Enabled ?</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6">
+                                <div class="form-group" title="When will be the next execution of this job?">
+                                    Next Scheduled Execution:<br />
+                                    <div class="dropdown">
+                                        <a class="dropdown-toggle" id="dropdown2" role="button" data-toggle="dropdown" data-target="#" href="#">
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" data-ng-model="selectedJob.NextExecution"><span class="input-group-addon"><i class="glyphicon glyphicon-calendar"></i></span>
+                                            </div>
+                                        </a>
+                                        <ul class="dropdown-menu" role="menu" aria-labelledby="dLabel">
+                                            <datetimepicker data-ng-model="selectedJob.NextExecution" data-datetimepicker-config="{ dropdownSelector: '#dropdown2' }"></datetimepicker>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="form-group" title="When this job will be executed">
+                                    Job Scheduler: <button class="btn btn-default btn-sm" role="button" ng-click="addNewScheduler()"><i class="fa fa-plus"></i></button>
+                                    <div class="separator-4"></div>
+
+                                    <ul class="list-unstyled">
+                                        <li ng-repeat="cron in selectedJob.Scheduler track by $index">
+                                            <div class="form-group">
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control" ng-model="selectedJob.Scheduler[$index]" data-index="{{ $index }}" />
+                                                    <span class="input-group-btn">
+                                                        <button class="btn btn-default" type="button" ng-click="editCronScheduler($index)"><i class="fa fa-pencil-square-o"></i></button>
+                                                        <button class="btn btn-default" type="button" ng-click="removeScheduler($index)"><i class="fa fa-trash-o text-danger"></i></button>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    Events: <button class="btn btn-default btn-sm" role="button" ng-click="addJobEvent()"><i class="fa fa-plus"></i></button>
+                                    <div class="separator-4"></div>
+
+                                    <ul class="list-unstyled">
+                                        <li ng-repeat="cron in selectedJob.Events track by $index">
+                                            <div class="form-group">
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control" ng-model="selectedJob.Events[$index]" />
+                                                    <span class="input-group-btn">
+                                                        <button class="btn btn-default" type="button" ng-click="removeJobEvent($index)"><i class="fa fa-trash-o text-danger"></i></button>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+                        <h3>Actions</h3>
+
+                        <div class="row">
+                            <div class="col-sm-6">
+
+                            </div>
+                        </div>
+
+
+                        <hr>
+                        <h3>Job settings</h3>
+
+                        <div class="row">
+                            <div class="col-sm-6">
+
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div role="tabpanel" class="tab-pane" id="editAsJson">
+                        <div class="separator-8"></div>
+                                                
+                        <h3>
+                            JSON editor
+                            <button class="btn btn-default pull-right" role="button" ng-click="parseJobFromText()">Check Syntax</button>
+                        </h3>
+
+                        <textarea class="form-control" rows="30" ng-model="jobTextContent"></textarea>
+
+                    </div>
+                </div>
             </div>
-            <div class="form-group">
-                <button class="btn btn-default col-sm-1 pull-right" role="button" id="btnSave" ng-click="saveCurrentJob()">Save</button>
+        </div>
+    </div>
+
+    <div class="separator-8"></div>
+
+    <div class="form-group">
+        <button class="btn btn-default col-sm-1 pull-right" role="button" ng-click="saveCurrentJob()">Save</button>
+    </div>
+
+    <!-- Hidden stuff -->
+    <div style="display: none;">
+        <div id="addNewJobDialog" style="width:400px;">
+            <div class="container-fluid bottom_margin_10">
+                <div class="form-group">
+                    New Job Name:<br />
+                    <input type="text" class="form-control" ng-model="newJob.Name" />
+                </div>
+                <div class="form-group">
+                    New Job Group:<br />
+                    <input type="text" class="form-control" ng-model="newJob.Group" />
+                </div>
+            </div>
+        </div>
+
+        <div id="cronEditorDialog" style="width:500px; height:350px;">
+            <div class="container-fluid bottom_margin_10">
+                <h3>Scheduler editor</h3>
+
+                <div class="well well-sm">
+                    Note: remember that the time is in <b>UTC</b>.
+                </div>
+                <div class="separator-4"></div>
+
+                <div id='cronEditorDialogCtrl'></div>
+
+                <div class="separator-16"></div>
+                <b>Selected cron text: </b> <span id="cronEditorDialogCtrlText"></span>
+                <div class="separator-4"></div>
             </div>
         </div>
     </div>
@@ -51,7 +228,7 @@
             //        .toggleClass('alert-info', evtType || 'info' === "info")
             //        .show();
             //}
-            actionCount: function (job) {                
+            actionCount: function (job) {
                 function _count(action) {
                     if (!action) { return 0; }
                     var c = 1, i;
@@ -68,16 +245,14 @@
         };
 
         //** angularJs initialization **
-        var ng_app = angular.module('app', ['ui.grid', 'ui.grid.selection', 'ui.grid.autoResize']);
+        var ng_app = angular.module('app', ['ui.bootstrap.datetimepicker', 'ui.grid', 'ui.grid.selection', 'ui.grid.autoResize', 'ui.grid.resizeColumns']);
         ng_app.directive('ngSelect2Bind', ['$q', ngSelect2BindDirective]);
 
         //** angularJs page main controller **
         ng_app.controller('mainController', function ($scope, $http, $timeout) {
             //** angularJs initialization **
             $scope.status = false;
-            $scope.message = "loading..."; 
-
-            //$scope.jobTextContent = 'lkjshdflkjhsdkljhlksjdfh';
+            $scope.message = "loading...";
 
             //** methods and behaviors **
             $scope.executeQuery = function (operation, data, onsuccess, onerror) {
@@ -127,14 +302,12 @@
             };
 
             $scope.saveCurrentJob = function () {
-                try {
-                    // parse edited job to check if its a valid json object
-                    var job = JSON.parse($scope.jobTextContent);
-                    // save  
-                    $scope.saveJob(job);
-                } catch (e) {
-                    simpleDialog.error('Error parsing Job: ' + e.message);
+                if (!$scope.selectedJob) { return; }
+                if ($scope.currentEditMode === 'json') {
+                    $scope.refreshEditAreaForm();
                 }
+                // save
+                $scope.saveJob($scope.selectedJob);
             };
 
             $scope.saveJob = function (job) {
@@ -184,9 +357,34 @@
             $scope.selectItem = function (item) {
                 if (item) {
                     $scope.selectedJob = item;
-                    $scope.jobTextContent = angular.toJson(item, true, 10);
+                    $scope.refreshEditAreaJson();
                 } else {
                     $scope.clearItem();
+                }
+            };
+
+            $scope.changeEditAreaMode = function (mode) {
+                if (!$scope.selectedJob) { return; }
+                $scope.currentEditMode = mode;
+                if (mode === 'json') {
+                    $scope.refreshEditAreaJson();
+                } else {
+                    $scope.refreshEditAreaForm();
+                }
+            };
+
+            $scope.refreshEditAreaJson = function () {
+                if ($scope.selectedJob) {
+                    $scope.jobTextContent = angular.toJson($scope.selectedJob, true);
+                }
+            };
+
+            $scope.refreshEditAreaForm = function () {
+                if ($scope.selectedJob) {
+                    var job = $scope.parseJobFromText();
+                    if (job) {
+                        $scope.selectedJob = job;
+                    }
                 }
             };
 
@@ -194,22 +392,173 @@
                 $scope.showMessage("loading...");
 
                 $scope.executeQuery('load', null,
-                    function (data) {                        
+                    function (data) {
                         $scope.showMessage('data loaded!');
+                        var lastSelectedItem = $scope.selectedJob;
                         $scope.dataTableJobs.data = data;
                         // refresh selected item
-                        if ($scope.selectedJob) {
-                            for (var i = 0, len = data.length; i < len; i++) {
-                                if (data[i].Id === $scope.selectedJob.Id) {
-                                    $scope.dataTableJobsApi.selection.selectRow(data[i]);
-                                    break;
+                        $timeout(function () {
+                            if (lastSelectedItem) {
+                                for (var i = 0, len = data.length; i < len; i++) {
+                                    if ((!!lastSelectedItem.Id && data[i].Id === lastSelectedItem.Id) ||
+                                        (!!lastSelectedItem.Name && data[i].Name === lastSelectedItem.Name)) {
+                                        $scope.dataTableJobsApi.selection.selectRow($scope.dataTableJobs.data[i]);
+                                        break;
+                                    }
                                 }
                             }
-                        }
+                        });
                     }, function () {
                         $scope.clearItem();
                         $scope.showMessage("Loading failled!", true);
                     });
+            };
+
+            $scope.editCronScheduler = function (index) {
+                if (!$scope.selectedJob) { return; }
+                if (!$scope.selectedJob.Scheduler) { $scope.selectedJob.Scheduler = []; }
+                if (!$scope.selectedJob.Scheduler[index]) { $scope.selectedJob.Scheduler[index] = '0 5 * * *' };
+                $('#cronEditorDialogCtrl').cron('value', $scope.selectedJob.Scheduler[index]);
+                simpleDialog.info($('#cronEditorDialog'), function () {
+                    $timeout(function () { $scope.selectedJob.Scheduler[index] = $('#cronEditorDialogCtrl').cron("value"); });
+                });
+            };
+
+            $scope.createJob = function () {
+                return {
+                    Name: '',
+                    Group: '',
+                    Enabled: true,
+                    RootAction: []
+                };
+            };
+
+            $scope.addNewJob = function () {
+                $scope.newJob = $scope.createJob();
+                // show job creation dialog
+                simpleDialog.info($('#addNewJobDialog'), function () {
+                    $timeout(function () {
+                        // set new job
+                        $scope.selectItem($scope.newJob);
+                        // scroll page to edit area
+                        $('html, body').animate({
+                            scrollTop: $("#nav-jobDetails").offset().top
+                        }, 500);
+                    });
+                });
+            };
+
+            $scope.addNewScheduler = function () {
+                if (!$scope.selectedJob) { return; }
+                if (!$scope.selectedJob.Scheduler) { $scope.selectedJob.Scheduler = []; }
+                $scope.selectedJob.Scheduler[$scope.selectedJob.Scheduler.length] = '';
+            };
+
+            $scope.removeScheduler = function (index) {
+                if (!$scope.selectedJob) { return; }
+                if (!$scope.selectedJob.Scheduler) { $scope.selectedJob.Scheduler = []; }
+                $scope.selectedJob.Scheduler.splice(index, 1);
+            };
+
+            $scope.addJobEvent = function () {
+                if (!$scope.selectedJob) { return; }
+                if (!$scope.selectedJob.Events) { $scope.selectedJob.Events = []; }
+                $scope.selectedJob.Events[$scope.selectedJob.Events.length] = '';
+            };
+
+            $scope.removeJobEvent = function (index) {
+                if (!$scope.selectedJob) { return; }
+                if (!$scope.selectedJob.Events) { $scope.selectedJob.Events = []; }
+                $scope.selectedJob.Events.splice(index, 1);
+            };
+
+            $scope.getTableJobsHeight = function () {
+                var rowHeight = 36, headerHeight = 36, totalHeight;
+                // calculate current heigth
+                totalHeight = ($scope.dataTableJobs.data.length || 1) * 36 + 36;
+                // max heigth
+                if (totalHeight > 500) { totalHeight = 500; }
+                // create style
+                return { height: totalHeight + "px" };
+            };
+
+            $scope.parseJobFromText = function () {
+                var job = null;
+                try {
+                    job = JSON.parse($scope.jobTextContent);
+                } catch (e) {
+                    simpleDialog.error('Error parsing Job, check the JSON syntax.<br/>' + e.message);
+                    return null;
+                }
+
+                // check for old syntax and try to update
+                if (!!job.Jobs) {
+
+                    function copyBasicData (j) {
+                        var c = $scope.createJob();                        
+                        c.Id = j.Id;
+                        c.Name = j.Name;
+                        c.Group = j.Domain;
+                        c.Description = j.Description;
+                        if (j.Comments)
+                            c.Description = (c.Description || '') + '\n' + j.Comments;
+                        c.Enabled = j.Enabled;
+                        c.Options = j.Options || {};                        
+                        if (j.Jobs && j.Jobs.length > 0) {
+                            j = j.Jobs[0];
+                            c.Enabled = j.Enabled;
+                            if (typeof j.Scheduler === 'string') {
+                                c.Scheduler = [ j.Scheduler ];
+                            } else {
+                                c.Scheduler = j.Scheduler || [];
+                            }
+                            c.LastExecution = j.LastExecution;
+                            c.NextExecution = j.NextExecution;
+
+                            if (j.Events) {
+                                c.Events = j.Events;
+                            }
+                            if (j.Comments)
+                                c.Description = (c.Description || '') + '\n' + j.Comments;
+                            if (j.Options) {
+                                c.Options = jQuery.extend({}, c.Options, j.Options);
+                            }
+
+                            c.RootAction = copyAction(j.RootAction);
+                        }
+                        
+                        return c;
+                    }
+
+                    function copyAction(a) {
+                        var a2= {
+                            Type: a.Type || 0,
+                            Module: a.PluginId || '',                           
+                            Options: a.Options || {},
+                            Comments: a.Comments
+                        };
+                        // copy sub actions
+                        if (a.Actions) {
+                            a2.Actions = [];
+                            for (var i = 0; i < a.Actions.length; i++) {
+                                a2.push(copyAction(a.Actions[i]));
+                            }
+                        }
+                        return a2;
+                    }
+
+                    var oldJob = job;
+                    if (job.Jobs.length > 1) {
+                        simpleDialog.error('Error updating Job format: multiple Jobs found.<br/>Please split these jobs manually and submit each again.');
+                        return;
+                    }
+
+                    job = copyBasicData(oldJob);
+                    // update UI
+                    $scope.selectItem(job);
+                }
+
+                return job;
             };
 
             //** UI components configuration **
@@ -217,6 +566,8 @@
                 // table configuration
                 $scope.dataTableJobs = {
                     appScopeProvider: $scope,
+                    enableHorizontalScrollbar: 0,
+                    enableVerticalScrollbar: 0,
                     enableGridMenu: false,
                     rowHeight: 36,
                     multiSelect: false,
@@ -225,7 +576,6 @@
                     enableSelectionBatchEvent: false,
                     enableSelectAll: false,
                     enableRowHeaderSelection: false,
-                    showGridFooter: true,
                     onRegisterApi: function (gridApi) {
                         $scope.dataTableJobsApi = gridApi;
                         gridApi.selection.on.rowSelectionChanged($scope, function (row) {
@@ -243,20 +593,41 @@
                             { name: 'Description', field: "Description", resizable: true },
                             { name: 'Enabled', field: "Enabled", resizable: true },
                             { name: 'Actions', resizable: true, cellTemplate: '<div>{{ jobHelper.actionCount(row.entity) }}</div>' },
-                            { name: 'Actions', displayName: '', resizable: true, enableColumnMenu: false, enableSorting: false, cellTemplate:
-                                         '<div><button type="button" role="button" ng-click="grid.appScope.playJob(row.entity)" class="btn btn-default btn-small margin-horizontal-2"><i class="fa fa-play"></i></button>' +
-                                         '<button type="button" role="button" ng-click="grid.appScope.removeJob(row.entity)" class="btn btn-default btn-small margin-horizontal-2"><i class="fa fa-trash-o text-danger"></i></button></div>'
+                            {
+                                name: 'Actions', displayName: '', resizable: true, enableColumnMenu: false, enableSorting: false, cellTemplate:
+                                           '<div><button type="button" role="button" ng-click="grid.appScope.playJob(row.entity)" class="btn btn-default btn-small margin-horizontal-2"><i class="fa fa-play"></i></button>' +
+                                           '<button type="button" role="button" ng-click="grid.appScope.removeJob(row.entity)" class="btn btn-default btn-small margin-horizontal-2"><i class="fa fa-trash-o text-danger"></i></button></div>'
                             }
                     ],
                     data: []
                 };
+
+                $('#editAreaNavTabs a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+                    $timeout(function () {
+                        if (e.target.href.split('#')[1] === 'editAsJson') {
+                            $scope.changeEditAreaMode('json');
+                        } else {
+                            $scope.changeEditAreaMode('form');
+                        }
+                    });
+                });
+
+                $('#cronEditorDialogCtrl').cron({
+                    initial: "*/5 * * * *",
+                    onChange: function () {
+                        $('#cronEditorDialogCtrlText').text($(this).cron("value"));
+                    },
+                    useGentleSelect: true
+                });
+
+                $scope.selectItem($scope.createJob());
             })();
         });
 
 
         // initialization
         $(document).ready(function () {
-            angular.element('#mainController').scope().refresh();        
+            angular.element('#mainController').scope().refresh();
         });
     </script>
 }
