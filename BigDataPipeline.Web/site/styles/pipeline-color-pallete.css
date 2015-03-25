@@ -66,6 +66,8 @@
 .margin-right-32             { margin-right: 32px; }
 .margin-right-64             { margin-right: 64px; }
 
+.width-full {width: 100%;}
+
 /*div 
 {
     border: 0px solid #000000;

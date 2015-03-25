@@ -104,6 +104,7 @@
     <Compile Include="Code\AccessControlContext.cs" />
     <Compile Include="Code\AccessControlFactory.cs" />
     <Compile Include="Controllers\EventsModule.cs" />
+    <Compile Include="Controllers\ModulesModule.cs" />
     <Compile Include="Controllers\JobsModule.cs" />
     <Compile Include="Controllers\HomeModule.cs" />
     <Compile Include="Controllers\LoginModule.cs" />
@@ -127,6 +128,7 @@
     <Content Include="site\scripts\select2\select2.min.js" />
     <Content Include="site\scripts\select2\select2_helpers.js" />
     <Content Include="site\scripts\select2\select2_locale_pt-BR.js" />
+    <Content Include="site\scripts\simpleTable.js" />
     <Content Include="site\styles\datetimepicker.css" />
     <Content Include="site\styles\img\expand.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -199,6 +201,9 @@
     <None Include="site\scripts\angular-animate.min.js.map" />
     <None Include="site\scripts\angular-touch.min.js.map" />
     <None Include="site\scripts\angular.min.js.map" />
+    <None Include="site\Views\Modules\Index.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="site\Views\Configuration\Index.cshtml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

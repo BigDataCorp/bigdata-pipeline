@@ -50,11 +50,18 @@ namespace BigDataPipeline.Web.site.Controllers
                         catch (Exception e)
                         {
                             return new QueryResponse (false, "Error parsing Job: " + e.Message);
-                        }
-                        if (String.IsNullOrWhiteSpace (job.Id))
-                            return new QueryResponse (false, "Invalid Job Id");
+                        }                        
                         if (String.IsNullOrWhiteSpace (job.Name))
                             return new QueryResponse (false, "Invalid Job Name");
+                        // validate scheduler
+                        if (job.Scheduler != null && job.Scheduler.Count > 0)
+                            job.SetScheduler (job.Scheduler.ToArray ());
+                        // recalculate stale next execution
+                        if (job.NextExecution < DateTime.UtcNow.Subtract (PipelineJob.SchedulerLowThreshold))
+                            job.RecalculateScheduler ();
+                        // adjust events
+                        if (job.Events != null && job.Events.Count > 0)
+                            job.Events = new HashSet<string> (job.Events.Where (i => !String.IsNullOrWhiteSpace (i)).Select (i => i.Trim ()));
                         PipelineService.Instance.GetStorage ().SavePipelineCollection (job);
                         return new QueryResponse (true);
                     }

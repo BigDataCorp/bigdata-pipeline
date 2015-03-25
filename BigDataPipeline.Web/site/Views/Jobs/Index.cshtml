@@ -136,29 +136,62 @@
                         </div>
 
                         <hr>
-                        <h3>Actions</h3>
-
-                        <div class="row">
-                            <div class="col-sm-6">
-
-                            </div>
-                        </div>
-
-
-                        <hr>
                         <h3>Job settings</h3>
 
                         <div class="row">
                             <div class="col-sm-6">
-
+                                <div class="alert alert-warning">Not implemented!</div>
                             </div>
                         </div>
+
+                        <hr>
+                        <h3>Initial Action</h3>
+
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    Module:<br />
+                                    <input type="hidden" class="width-full" ng-select2-bind ng-model="selectedJob.RootAction.Module" select2-query="modules.getNames()" allow-clear placeholder="Select a module..." />
+                                </div>
+                                <div class="form-group">
+                                    Action Options:<br />
+                                    <div class="alert alert-warning">Not implemented!</div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    Selected Module Details<br />
+
+                                    <textarea class="form-control" rows="8" ng-model="modules.selectedText" readonly></textarea>
+
+                                    <div class="separator-4"></div>
+
+                                    <ul>
+                                        <li ng-repeat="item in modules.selectedParameters track by $index">
+                                            {{item}}
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+                        <h3>Subsequent Actions</h3>
+
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="alert alert-warning">Not implemented!</div>
+                            </div>
+                        </div>
+
+
+
 
                     </div>
 
                     <div role="tabpanel" class="tab-pane" id="editAsJson">
                         <div class="separator-8"></div>
-                                                
+
                         <h3>
                             JSON editor
                             <button class="btn btn-default pull-right" role="button" ng-click="parseJobFromText()">Check Syntax</button>
@@ -246,23 +279,24 @@
 
         //** angularJs initialization **
         var ng_app = angular.module('app', ['ui.bootstrap.datetimepicker', 'ui.grid', 'ui.grid.selection', 'ui.grid.autoResize', 'ui.grid.resizeColumns']);
-        ng_app.directive('ngSelect2Bind', ['$q', ngSelect2BindDirective]);
+        ng_app.directive('ngSelect2Bind', ['$q', '$timeout', ngSelect2BindDirective]);
 
         //** angularJs page main controller **
         ng_app.controller('mainController', function ($scope, $http, $timeout) {
             //** angularJs initialization **
             $scope.status = false;
             $scope.message = "loading...";
+            $scope.modules = {};
 
             //** methods and behaviors **
-            $scope.executeQuery = function (operation, data, onsuccess, onerror) {
+            $scope.executeQuery = function (url, operation, data, onsuccess, onerror) {
                 var p = {
                     op: operation,
                     data: data
                 };
                 simpleDialog.loading();
                 return $.ajax({
-                    url: "./jobs/query",
+                    url: url,
                     cache: false,
                     async: true,
                     type: 'POST',
@@ -301,17 +335,33 @@
                 });
             };
 
+            $scope.executeJobsQuery = function (operation, data, onsuccess, onerror) {
+                return $scope.executeQuery("./jobs/query", operation, data, onsuccess, onerror);
+            };
+
+            $scope.executeModulesQuery = function (operation, data, onsuccess, onerror) {
+                return $scope.executeQuery("./modules/query", operation, data, onsuccess, onerror);
+            };
+
             $scope.saveCurrentJob = function () {
-                if (!$scope.selectedJob) { return; }
+                // try get selected job
+                var job = $scope.selectedJob;
+                if (!job) {
+                    simpleDialog.warning('No job selected!');
+                    return;
+                }
+                // if mode is json edit, we should try a different approach
                 if ($scope.currentEditMode === 'json') {
-                    $scope.refreshEditAreaForm();
+                    job = $scope.parseJobFromText();
                 }
                 // save
-                $scope.saveJob($scope.selectedJob);
+                if (job) {
+                    $scope.saveJob(job);
+                }
             };
 
             $scope.saveJob = function (job) {
-                $scope.executeQuery('save',
+                $scope.executeJobsQuery('save',
                             { 'job': angular.toJson(job) },
                             function (data) {
                                 $scope.refresh();
@@ -321,9 +371,9 @@
 
             $scope.removeJob = function (job) {
                 simpleDialog.warning('Remove job <b>' + job.Name + '</b> ?<br/><br/>' + $scope.getSimpleJobDetails(job), function () {
-                    $scope.executeQuery('remove', { 'jobId': job.Id.toString() },
+                    $scope.executeJobsQuery('remove', { 'jobId': job.Id.toString() },
                         function (data) {
-                            _page.refresh();
+                            $scope.refresh();
                             simpleDialog.success('Job removed!<br/><br/>' + $scope.getSimpleJobDetails(job));
                         });
                 });
@@ -331,9 +381,9 @@
 
             $scope.playJob = function (job) {
                 simpleDialog.warning('Execute job <b>' + job.Name + '</b> ?<br/><br/>' + $scope.getSimpleJobDetails(job), function () {
-                    $scope.executeQuery('play', { 'jobId': job.Id.toString() },
+                    $scope.executeJobsQuery('play', { 'jobId': job.Id.toString() },
                         function (data) {
-                            _page.refresh();
+                            $scope.refresh();
                             simpleDialog.success('Job executing...<br/><br/>' + $scope.getSimpleJobDetails(job));
                         });
                 });
@@ -356,6 +406,10 @@
 
             $scope.selectItem = function (item) {
                 if (item) {
+                    if (!item.Options) { item.Options = {}; }
+                    if (!item.RootAction) { item.RootAction = {}; }
+                    if (!item.RootAction.Options) { item.RootAction.Options = {}; }
+
                     $scope.selectedJob = item;
                     $scope.refreshEditAreaJson();
                 } else {
@@ -391,7 +445,7 @@
             $scope.refresh = function () {
                 $scope.showMessage("loading...");
 
-                $scope.executeQuery('load', null,
+                $scope.executeJobsQuery('load', null,
                     function (data) {
                         $scope.showMessage('data loaded!');
                         var lastSelectedItem = $scope.selectedJob;
@@ -429,7 +483,11 @@
                     Name: '',
                     Group: '',
                     Enabled: true,
-                    RootAction: []
+                    Options: {},
+                    RootAction: {
+                        Module: '',
+                        Options: {}
+                    }
                 };
             };
 
@@ -494,8 +552,8 @@
                 // check for old syntax and try to update
                 if (!!job.Jobs) {
 
-                    function copyBasicData (j) {
-                        var c = $scope.createJob();                        
+                    function copyBasicData(j) {
+                        var c = $scope.createJob();
                         c.Id = j.Id;
                         c.Name = j.Name;
                         c.Group = j.Domain;
@@ -503,12 +561,12 @@
                         if (j.Comments)
                             c.Description = (c.Description || '') + '\n' + j.Comments;
                         c.Enabled = j.Enabled;
-                        c.Options = j.Options || {};                        
+                        c.Options = j.Options || {};
                         if (j.Jobs && j.Jobs.length > 0) {
                             j = j.Jobs[0];
                             c.Enabled = j.Enabled;
                             if (typeof j.Scheduler === 'string') {
-                                c.Scheduler = [ j.Scheduler ];
+                                c.Scheduler = [j.Scheduler];
                             } else {
                                 c.Scheduler = j.Scheduler || [];
                             }
@@ -526,14 +584,14 @@
 
                             c.RootAction = copyAction(j.RootAction);
                         }
-                        
+
                         return c;
                     }
 
                     function copyAction(a) {
-                        var a2= {
+                        var a2 = {
                             Type: a.Type || 0,
-                            Module: a.PluginId || '',                           
+                            Module: a.PluginId || '',
                             Options: a.Options || {},
                             Comments: a.Comments
                         };
@@ -559,6 +617,32 @@
                 }
 
                 return job;
+            };
+
+            $scope.modules.getNames = function () {
+                return $scope.modules.names;
+            };
+
+            $scope.modules.loadModules = function () {
+                return $scope.executeModulesQuery('load', null, function (data) {
+                    $scope.modules.list = data;
+                    $scope.modules.names = Lazy($scope.modules.list).map(function (c) { return c.FullName; }).uniq().sort().toArray();
+                });
+            };
+
+            $scope.modules.getModule = function (name) {
+                var l = $scope.modules.list || [], i = 0;
+                for (; i < l.length; i++) {
+                    if (l[i].FullName === name) {
+                        return l[i];
+                    }
+                }
+                return null;
+            };
+
+            $scope.modules.getDescription = function (module) {
+                var m = $scope.modules.getModule(module);
+                return m != null ? m.Description : '';
             };
 
             //** UI components configuration **
@@ -621,13 +705,28 @@
                 });
 
                 $scope.selectItem($scope.createJob());
+
+                $scope.$watch('selectedJob.RootAction.Module', function () {
+                    var module = $scope.selectedJob.RootAction.Module;
+                    $scope.modules.selected = $scope.modules.getModule(module);
+
+                    $scope.modules.selectedText = '';
+                    $scope.modules.selectedParameters = '';
+                    if ($scope.modules.selected) {
+                        $scope.modules.selectedText = $scope.modules.selected.Description;
+                        $scope.modules.selectedParameters = Lazy($scope.modules.selected.Parameters || []).map(function (c) { return "{0} ({1}) - {2} - {3}".replace('{0}', c.Name || '').replace('{1}', c.Type || '').replace('{2}', c.IsRequired ? 'REQUIRED' : 'OPTIONAL').replace('{3}', c.Description || '') }).toArray();
+                    }
+                })
+
+                $scope.modules.loadModules();
+                $scope.refresh();
             })();
         });
 
 
         // initialization
-        $(document).ready(function () {
-            angular.element('#mainController').scope().refresh();
-        });
+        //$(document).ready(function () {
+        //    angular.element('#mainController').scope().refresh();
+        //});
     </script>
 }

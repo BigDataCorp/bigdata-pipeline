@@ -55,7 +55,7 @@ function _select2_internalSearch(data, term, mode, limit) {
     // prepare search term
     if (!term) { return data.length <= limit ? data : data.slice(0, limit); }
     term = select2_prepareSearchTerm(term);
-    
+
     // prepare comparison method
     if (mode === 'equals') {
         equals = function (x, y) { return select2_prepareSearchTerm(x) === y; };
@@ -149,15 +149,15 @@ function select2_prepareSearchTerm(str) {
  * https://amitgharat.wordpress.com/2013/06/08/the-hitchhikers-guide-to-the-directive/
  * 
  *  How to add this directive to an application?
- * ng_app.directive('ngSelect2Bind', ['$q', ngSelect2BindDirective]);
+ * ng_app.directive('ngSelect2Bind', ['$q', '$timeout', ngSelect2BindDirective]);
  * 
  * basic usage example: 
- * <input type="hidden" ng-select2-bind select2-value="mySelectedValue" select2-query="getPossibleValues()" />
+ * <input type="hidden" ng-select2-bind ng-model="mySelectedValue" select2-query="getPossibleValues()" />
  * 
  * advanced usage example: 
- * <input type="hidden" class="width-full" ng-select2-bind select2-value="filters.report" select2-query="dataSources.getReports()" allowClear multiple placeholder="Selecione um tipo de relatório" />
+ * <input type="hidden" class="width-full" ng-select2-bind ng-model="filters.report" select2-query="dataSources.getReports()" allowClear multiple placeholder="Selecione um tipo de relatório" />
  * 
- * @param {(string|string[])} select2-value - bind the scope property with select2 values. It will use the id field of select2 data structure, example: { id: '', text: '' }.
+ * @param {(string|string[])} ng-model - bind the scope property with select2 values. It will use the id field of select2 data structure, example: { id: '', text: '' }.
  * @param {function} select2-query - function that will return select2 possible values. It can return an array or a jQuery/Angular deferred/promise with the result array [or an object like { data: [] }].
  * @param {bool=} multiple - if multiple values can be selected or only a single one
  * @param {bool=} disable-validation - if a programatic value initialization should be checked agains the possible values returned by selec2-query.
@@ -172,7 +172,7 @@ function ngSelect2BindDirective($q, $timeout) {
         if (!v1 || !v2) { return v1 === v2; }
         if (v1.length !== v2.length) { return false; }
         // if string, compare as string
-        if (typeof v1 === 'string') { return v1 === v2; }        
+        if (typeof v1 === 'string') { return v1 === v2; }
         // compare as array
         for (var i = 0, len = v1.length; i < len; i++) {
             if (v1[i] !== v2[i]) { return false; }
@@ -200,8 +200,8 @@ function ngSelect2BindDirective($q, $timeout) {
                 // use a timeout method to safelly signal angularjs to refresh its context
                 $timeout(function () {
                     // update only if values differs
-                    if (!valuesAreEqual(scope.select2Value, e.val)) {
-                        scope.select2Value = e.val;
+                    if (!valuesAreEqual(scope.ngModel, e.val)) {
+                        scope.ngModel = e.val;
                     }
                 });
             }).select2({
@@ -233,22 +233,23 @@ function ngSelect2BindDirective($q, $timeout) {
             });
 
             // set intial value
-            if (scope.select2Value) {
-                element.select2('val', scope.select2Value, true);
+            if (scope.ngModel) {
+                element.select2('val', scope.ngModel, true);
             }
 
             // set binding between field and select2 component
-            scope.$watch('select2Value', function (newValue, oldValue) {
+            function updateSelectedValue(newValue, oldValue) {
                 if (newValue !== oldValue && !valuesAreEqual(newValue, element.select2('val'))) {
                     // update select2 values and also trigger the change event to make sure we got the correct selected values
                     $(element).select2('val', newValue, true);
                 }
-            });
+            }
+            scope.$watch('ngModel', updateSelectedValue);
         },
         // if a new scope should be created 
         // and how to bind our scope variables
         scope: {
-            select2Value: '=',
+            ngModel: '=',
             select2Query: '&',
         } //@ reads the attribute value, = provides two-way binding, & works with functions        
     };

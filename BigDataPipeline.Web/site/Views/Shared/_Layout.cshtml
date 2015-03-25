@@ -89,6 +89,7 @@
                 .Add ("~/scripts/jquery-cron.min.js")
                 .Add ("~/scripts/lazy.min.js")
                 .Add ("~/scripts/simpleDialog.js")
+                .Add ("~/scripts/simpleTable.js")
 
                 .Add ("~/scripts/select2/select2.min.js")
                 .Add ("~/scripts/select2/select2_locale_pt-BR.js")
@@ -97,8 +98,9 @@
                 .Add ("~/scripts/datetimepicker.js")
                 .Add ("~/scripts/ui-grid-unstable.min.js")
                 .WithOutputBaseHref (Url.Content ("~/"))
-                .Render ("~/scripts/bundle.js"));
+                .Render ("~/scripts/bundle.js"))
 
+    @*<script type="text/javascript" src="~/scripts/select2/select2_helpers.js"></script>*@
 
     <script type="text/javascript">
     @**** local vars ****@
