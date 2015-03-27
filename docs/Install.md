@@ -5,6 +5,8 @@ To install BigDataPipeline as a windows service (linux is not supported yet!), s
 BigDataPipeline.exe install
 `
 
+For reference see: http://topshelf.readthedocs.org/en/latest/overview/commandline.html
+
 ## Uninstall
 `
 BigDataPipeline.exe uninstall

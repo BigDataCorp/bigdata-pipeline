@@ -8,6 +8,7 @@
  *  $('#myTable').simpleTable();
  * 
  * 2. If I want a custom table layout...
+ * <div id="table-area" class="max-height-500 overflow-x overflow-y">...</div>
  *  <table id="usersTable">
  *  <thead>...</thead>
  *  <tbody> Here goes the data whenever populate table is called!!! </tbody>
@@ -79,6 +80,11 @@
             this._tb = null;
             this.idGen = 0;
 			return this;
+        };
+
+        SimpleTable.prototype.destroy = function () {
+            this.clearTable();
+            this.table.removeData('simpleTable');
         };
 
 		SimpleTable.prototype.clearHeader = function () {
@@ -263,6 +269,7 @@
             } else if (rowId === "last") {
                 rowId = this.lastRowId;
             }
+            if (typeof rowId === 'number') { rowId = rowId.toString(); }
             // try to select row
             if (rowId) {
                 var data = this.rows[rowId];

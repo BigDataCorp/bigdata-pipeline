@@ -1,0 +1,71 @@
+.separator-2                { height: 2px; clear: both; }
+.separator-4                { height: 4px; clear: both; }
+.separator-8                { height: 8px; clear: both; }
+.separator-16               { height: 16px; clear: both; }
+.separator-32               { height: 32px; clear: both; }
+.separator-64               { height: 64px; clear: both; }
+
+.padding-top-2              { padding-top: 2px; }
+.padding-top-4              { padding-top: 4px; }
+.padding-top-8              { padding-top: 8px; }
+.padding-top-16             { padding-top: 16px; }
+.padding-top-32             { padding-top: 32px; }
+.padding-top-64             { padding-top: 64px; }
+
+.margin-2                   { margin: 2px; }
+.margin-4                   { margin: 4px; }
+.margin-8                   { margin: 8px; }
+.margin-16                  { margin: 16px; }
+.margin-32                  { margin: 32px; }
+.margin-64                  { margin: 64px; }
+
+.margin-horizontal-2              { margin-left: 2px; margin-right: 2px;  }
+.margin-horizontal-4              { margin-left: 4px; margin-right: 4px;  }
+.margin-horizontal-8              { margin-left: 8px; margin-right: 8px;  }
+.margin-horizontal-16             { margin-left: 16px;margin-right: 16px; }
+.margin-horizontal-32             { margin-left: 32px;margin-right: 32px; }
+.margin-horizontal-64             { margin-left: 64px;margin-right: 64px; }
+
+.margin-right-2              { margin-right: 2px; }
+.margin-right-4              { margin-right: 4px; }
+.margin-right-8              { margin-right: 8px; }
+.margin-right-16             { margin-right: 16px; }
+.margin-right-32             { margin-right: 32px; }
+.margin-right-64             { margin-right: 64px; }
+
+.width-full {width: 100%;}
+
+.overflow-x { overflow-x: auto;}
+.overflow-y { overflow-y: auto;}
+
+/*div 
+{
+    border: 0px solid #000000;
+}*/
+
+/*.breadcrumb{
+    background-color: inherit !important;
+}*/
+
+/*http://kenneth.io/blog/2012/03/04/word-wrapping-hypernation-using-css/*/
+/*table.body {
+    -ms-word-break: break-all;
+     word-break: break-all;     
+     word-break: break-word;
+
+-webkit-hyphens: auto;
+   -moz-hyphens: auto;
+    -ms-hyphens: auto;
+        hyphens: auto;
+}*/
+
+.word-break-all {
+    -ms-word-break: break-all;
+     word-break: break-all;     
+     word-break: break-word;
+
+-webkit-hyphens: auto;
+   -moz-hyphens: auto;
+    -ms-hyphens: auto;
+        hyphens: auto;
+}

@@ -122,6 +122,10 @@
   <ItemGroup>
     <Content Include="README.txt" />
     <Content Include="site\scripts\datetimepicker.js" />
+    <Content Include="site\scripts\footable\footable.filter.min.js" />
+    <Content Include="site\scripts\footable\footable.min.js" />
+    <Content Include="site\scripts\footable\footable.paginate.min.js" />
+    <Content Include="site\scripts\footable\footable.sort.min.js" />
     <Content Include="site\scripts\jquery-1.11.2.min.js" />
     <Content Include="site\scripts\jquery-cron.min.js" />
     <Content Include="site\scripts\select2\select2.js" />
@@ -130,10 +134,14 @@
     <Content Include="site\scripts\select2\select2_locale_pt-BR.js" />
     <Content Include="site\scripts\simpleTable.js" />
     <Content Include="site\styles\datetimepicker.css" />
+    <Content Include="site\styles\footable\fonts\footable.svg" />
+    <Content Include="site\styles\footable\footable.core.css" />
     <Content Include="site\styles\img\expand.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="site\styles\jquery-gentleSelect.css" />
+    <Content Include="site\styles\footable\footable-custom.css" />
+    <Content Include="site\styles\pipeline-utils.css" />
     <Content Include="site\styles\pipeline-color-pallete.css" />
     <Content Include="site\styles\select2\select2-bootstrap.css" />
     <Content Include="site\styles\select2\select2-spinner.gif" />
@@ -183,6 +191,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <None Include="packages.config" />
+    <None Include="site\styles\footable\fonts\footable.eot" />
+    <None Include="site\styles\footable\fonts\footable.ttf" />
+    <None Include="site\styles\footable\fonts\footable.woff" />
     <None Include="site\styles\ui-grid.eot" />
     <None Include="site\styles\ui-grid.ttf" />
     <None Include="site\styles\ui-grid.woff" />

@@ -37,7 +37,7 @@ namespace BigDataPipeline.Web.site.Controllers
                     {
                         return new QueryResponse (true)
                         {
-                            result = PipelineService.Instance.GetStorage ().GetPipelineCollections (false)
+                            result = PipelineService.Instance.GetStorage ().GetPipelineJobs (false)
                         };
                     }
                 case "save":
@@ -53,28 +53,39 @@ namespace BigDataPipeline.Web.site.Controllers
                         }                        
                         if (String.IsNullOrWhiteSpace (job.Name))
                             return new QueryResponse (false, "Invalid Job Name");
+                        // load current job
+                        var currentJob = PipelineService.Instance.GetStorage ().GetPipelineJob (job.Id);
                         // validate scheduler
                         if (job.Scheduler != null && job.Scheduler.Count > 0)
                             job.SetScheduler (job.Scheduler.ToArray ());
+                        // keep old execution date
+                        if (currentJob != null)
+                            job.LastExecution = currentJob.LastExecution;
+
                         // recalculate stale next execution
                         if (job.NextExecution < DateTime.UtcNow.Subtract (PipelineJob.SchedulerLowThreshold))
-                            job.RecalculateScheduler ();
+                        {
+                            if (currentJob != null && job.NextExecution < currentJob.NextExecution)                                
+                                job.NextExecution = currentJob.NextExecution;
+                            else
+                                job.RecalculateScheduler ();
+                        }
                         // adjust events
                         if (job.Events != null && job.Events.Count > 0)
                             job.Events = new HashSet<string> (job.Events.Where (i => !String.IsNullOrWhiteSpace (i)).Select (i => i.Trim ()));
-                        PipelineService.Instance.GetStorage ().SavePipelineCollection (job);
+                        PipelineService.Instance.GetStorage ().SavePipelineJob (job);
                         return new QueryResponse (true);
                     }
                 case "remove":
                     {
-                        PipelineService.Instance.GetStorage ().RemovePipelineCollection (item.GetData ("jobId", ""));                        
+                        PipelineService.Instance.GetStorage ().RemovePipelineJob (item.GetData ("jobId", ""));                        
                         return new QueryResponse (true);
                     }
                 case "play":
                     {
-                        var job = PipelineService.Instance.GetStorage ().GetPipelineCollection (item.GetData ("jobId", ""));
+                        var job = PipelineService.Instance.GetStorage ().GetPipelineJob (item.GetData ("jobId", ""));
                         if (job == null)
-                            return new QueryResponse (false, "Collection not found!");
+                            return new QueryResponse (false, "Job not found!");
 
                         var task = new SessionContext
                         {

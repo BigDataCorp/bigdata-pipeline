@@ -17,6 +17,9 @@
                 .Add("~/styles/colorbox.css")
                 .Add("~/styles/jquery-gentleSelect.css")
                 .Add("~/styles/pipeline-color-pallete.css")
+                .Add("~/styles/pipeline-utils.css")
+                .Add("~/styles/footable/footable.core.css")
+                .Add("~/styles/footable/footable-custom.css")
                 .Add("~/styles/select2/select2.css")
                 .Add("~/styles/select2/select2-bootstrap.css")
 
@@ -90,6 +93,10 @@
                 .Add ("~/scripts/lazy.min.js")
                 .Add ("~/scripts/simpleDialog.js")
                 .Add ("~/scripts/simpleTable.js")
+                .Add ("~/scripts/footable/footable.min.js")
+                .Add ("~/scripts/footable/footable.filter.min.js")
+                .Add ("~/scripts/footable/footable.paginate.min.js")
+                .Add ("~/scripts/footable/footable.sort.min.js")
 
                 .Add ("~/scripts/select2/select2.min.js")
                 .Add ("~/scripts/select2/select2_locale_pt-BR.js")
@@ -100,7 +107,7 @@
                 .WithOutputBaseHref (Url.Content ("~/"))
                 .Render ("~/scripts/bundle.js"))
 
-    @*<script type="text/javascript" src="~/scripts/select2/select2_helpers.js"></script>*@
+    @*<script type="text/javascript" src="~/scripts/simpleTable.js"></script>*@
 
     <script type="text/javascript">
     @**** local vars ****@
