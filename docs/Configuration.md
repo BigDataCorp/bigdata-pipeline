@@ -88,7 +88,7 @@ Default value: `empty`
 
 If not configured or empty, the first loaded accessControl module will be used.
 
-* BigDataPipeline.DummyAccessControlModule
+* BigDataPipeline.DummyAccessControlModule.DummyAccessControl
 
 
 ### storageModule
