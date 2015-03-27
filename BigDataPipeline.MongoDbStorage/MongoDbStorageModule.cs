@@ -64,23 +64,23 @@ namespace BigDataPipeline.Mongo
             return default (T);
         }
 
-        public IEnumerable<PipelineJob> GetPipelineCollections (bool filterDisabledJobs = true)
+        public IEnumerable<PipelineJob> GetPipelineJobs (bool filterDisabledJobs = true)
         {
             var query = filterDisabledJobs ? Query.And (Query.EQ ("Enabled", true), Query.EQ ("Jobs.Enabled", true)) : Query.Null;
             return _db.GetCollection<PipelineJob> ("PipelineCollection").Find (query);
         }
 
-        public PipelineJob GetPipelineCollection (string itemId)
+        public PipelineJob GetPipelineJob (string itemId)
         {
             return _db.GetCollection<PipelineJob> ("PipelineCollection").FindOne (Query.EQ ("_id", itemId));
         }
 
-        public bool SavePipelineCollection (PipelineJob item)
+        public bool SavePipelineJob (PipelineJob item)
         {
             return _db.GetCollection<PipelineJob> ("PipelineCollection").SafeSave (item);
         }
 
-        public bool RemovePipelineCollection (string itemId)
+        public bool RemovePipelineJob (string itemId)
         {
             return _db.GetCollection<PipelineJob> ("PipelineCollection").Remove (Query.EQ ("_id", itemId)).Ok;
         }

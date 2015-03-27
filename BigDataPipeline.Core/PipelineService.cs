@@ -142,9 +142,9 @@ namespace BigDataPipeline.Core
                         if (job != null)
                         {
                             // save on database only if not already registered
-                            if (_storage.GetPipelineCollection (job.Id) == null)
+                            if (_storage.GetPipelineJob (job.Id) == null)
                             {
-                                _storage.SavePipelineCollection (job);
+                                _storage.SavePipelineJob (job);
                             }
                         }
                     }
@@ -310,7 +310,7 @@ namespace BigDataPipeline.Core
             // run all exiting collections:
             // 1. check its schedulle 
             // 2. register (update) the event handlers
-            foreach (var job in _storage.GetPipelineCollections ())
+            foreach (var job in _storage.GetPipelineJobs ())
             {
                 CheckSchedullers (job);
 
@@ -367,7 +367,7 @@ namespace BigDataPipeline.Core
            
             // save changes
             if (hasChanges)
-                _storage.SavePipelineCollection (job);            
+                _storage.SavePipelineJob (job);            
         }
     }
     

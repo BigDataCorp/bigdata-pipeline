@@ -43,7 +43,7 @@ namespace BigDataPipeline.SqliteStorage
             collectionsDb.Shrink ();
         }
 
-        public IEnumerable<PipelineJob> GetPipelineCollections (bool filterDisabledJobs = true)
+        public IEnumerable<PipelineJob> GetPipelineJobs (bool filterDisabledJobs = true)
         {
             // load items
             IEnumerable<PipelineJob> list = collectionsDb.Get (false);
@@ -54,12 +54,12 @@ namespace BigDataPipeline.SqliteStorage
                 return list;
         }
 
-        public PipelineJob GetPipelineCollection (string itemId)
+        public PipelineJob GetPipelineJob (string itemId)
         {
             return collectionsDb.Get (itemId).FirstOrDefault ();
         }
 
-        public bool SavePipelineCollection (PipelineJob item)
+        public bool SavePipelineJob (PipelineJob item)
         {
             if (item.Name == null)
                 item.Name = item.Id;
@@ -67,7 +67,7 @@ namespace BigDataPipeline.SqliteStorage
             return true;
         }
 
-        public bool RemovePipelineCollection (string itemId)
+        public bool RemovePipelineJob (string itemId)
         { 
             collectionsDb.Remove (itemId);
             return true;

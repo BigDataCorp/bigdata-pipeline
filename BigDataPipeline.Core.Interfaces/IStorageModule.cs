@@ -10,13 +10,13 @@ namespace BigDataPipeline.Core.Interfaces
 
         void Initialize (Record systemOptions);
 
-        IEnumerable<PipelineJob> GetPipelineCollections (bool filterDisabledJobs = true);
+        IEnumerable<PipelineJob> GetPipelineJobs (bool filterDisabledJobs = true);
 
-        PipelineJob GetPipelineCollection (string itemId);
+        PipelineJob GetPipelineJob (string itemId);
 
-        bool SavePipelineCollection (PipelineJob item);
+        bool SavePipelineJob (PipelineJob item);
 
-        bool RemovePipelineCollection (string itemId);
+        bool RemovePipelineJob (string itemId);
 
         Dictionary<string, string> GetConfigValues ();
 

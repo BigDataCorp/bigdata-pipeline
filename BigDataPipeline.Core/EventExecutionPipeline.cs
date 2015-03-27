@@ -140,7 +140,7 @@ namespace BigDataPipeline.Core
                 foreach (var i in list)
                 {
                     // load pipeline
-                    var job = _storage.GetPipelineCollection (i.Job.Id);
+                    var job = _storage.GetPipelineJob (i.Job.Id);
                     if (job == null || !job.Enabled || job.RootAction == null)
                         continue;
                     var ctx = new SessionContext

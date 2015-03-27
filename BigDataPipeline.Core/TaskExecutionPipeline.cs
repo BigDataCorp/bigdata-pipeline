@@ -151,7 +151,7 @@ namespace BigDataPipeline.Core
                 if (context.Origin == TaskOrigin.Scheduller)
                 {
                     // load collection and update its reference                
-                    var savedJob = _storage.GetPipelineCollection (context.Job.Id);
+                    var savedJob = _storage.GetPipelineJob (context.Job.Id);
                     // mark schedulled task execution start
                     if (savedJob != null)
                     {
@@ -159,7 +159,7 @@ namespace BigDataPipeline.Core
                         if (!savedJob.Enabled)
                             return;
                         savedJob.MarkExecutionStart ();
-                        _storage.SavePipelineCollection (savedJob);
+                        _storage.SavePipelineJob (savedJob);
                     }
                 }
                 
@@ -173,7 +173,7 @@ namespace BigDataPipeline.Core
                 if (context.Origin == TaskOrigin.Scheduller)
                 {
                     // reload collection
-                    var savedJob = _storage.GetPipelineCollection (context.Job.Id);
+                    var savedJob = _storage.GetPipelineJob (context.Job.Id);
                     // if it is a scheduller generated task, the collection must be enabled to proceed
                     if (savedJob == null || !savedJob.Enabled)
                     {
