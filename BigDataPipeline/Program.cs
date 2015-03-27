@@ -1,5 +1,6 @@
 ﻿using NLog;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Net;
@@ -15,6 +16,9 @@ namespace BigDataPipeline
     class Program
     {
         public static FlexibleOptions ProgramOptions { get; private set; }
+        static bool useTopshelfService = true;
+        static HashSet<string> topshelfArguments = new HashSet<string> (StringComparer.OrdinalIgnoreCase) { "help", "install", "uninstall", "start", "stop" };
+        static PipelineServiceManager svr;
 
         static void Main (string[] args)
         {
@@ -23,6 +27,8 @@ namespace BigDataPipeline
             try
             {
                 AppDomain.CurrentDomain.ProcessExit += new EventHandler (CurrentDomain_ProcessExit);
+
+                useTopshelfService = Console.IsOutputRedirected || args.Any (i => topshelfArguments.Contains (i));
 
                 // system initialization
                 DefaultProgramInitialization (args);
@@ -75,17 +81,34 @@ namespace BigDataPipeline
         {            
             bool isUserInteractive = !Console.IsOutputRedirected;
 
+            // display start up header
             if (isUserInteractive)
             {
                 ConsoleUtils.DisplayHeader (PipelineServiceManager.DefaultServiceDisplayName);
             }
 
-            InitializeService ();
+            // run
+            if (useTopshelfService)
+            {
+                InitializeService ();
+            }
+            else
+            {
+                svr = new PipelineServiceManager ();
+                svr.Start ();
+            }
 
+            // display program ending message
             if (isUserInteractive)
             {
                 ConsoleUtils.DisplayHeader ();
-                ConsoleUtils.WaitForAnyKey ();
+                // Wait for exit command
+                string line;
+                do
+                {
+                    line = ConsoleUtils.GetUserInput ("Type EXIT command to exit application...");
+                }
+                while (!line.Equals ("exit", StringComparison.OrdinalIgnoreCase)); 
             }
         }
 
@@ -94,7 +117,7 @@ namespace BigDataPipeline
         /// </summary>
         private static void InitializeService ()
         {
-            Topshelf.HostFactory.Run (host =>
+            var exitCode = Topshelf.HostFactory.Run (host =>
             {
                 host.Service<PipelineServiceManager> (sc =>
                 {
@@ -122,7 +145,15 @@ namespace BigDataPipeline
                         ConsoleUtils.CloseApplication (0, false);
                     });
                 });
-                
+
+                foreach (var k in ProgramOptions.Options)
+                {
+                    if (!topshelfArguments.Contains (k.Key))
+                    {
+                        host.AddCommandLineDefinition (k.Key, (i) => { });
+                    }
+                }
+
                 // Service Identity
                 host.RunAsLocalSystem ();
                 // Service Start Modes
@@ -156,6 +187,11 @@ namespace BigDataPipeline
                 
                 host.SetHelpTextPrefix ("\nService command line help text\n");
             });
+
+            if (exitCode != 0)
+            {
+                LogManager.GetCurrentClassLogger ().Fatal ("Service Initalization Error: " + exitCode);
+            }
         }
     }
 

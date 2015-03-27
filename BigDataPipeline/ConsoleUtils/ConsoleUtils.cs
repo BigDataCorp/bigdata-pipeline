@@ -30,7 +30,7 @@ namespace BigDataPipeline
             // more concurrent connections to the same IP (avoid throttling) and other tuning
             // http://blogs.msdn.com/b/jpsanders/archive/2009/05/20/understanding-maxservicepointidletime-and-defaultconnectionlimit.aspx
             System.Net.ServicePointManager.DefaultConnectionLimit = 1024; // more concurrent connections to the same IP (avoid throttling)
-            System.Net.ServicePointManager.MaxServicePointIdleTime = 20 * 1000; // release unused connections sooner (20 seconds)
+            System.Net.ServicePointManager.MaxServicePointIdleTime = 30 * 1000; // release unused connections sooner (20 seconds)
             // since mono blocks all non intalled SSL root certificate, lets disable it!
             System.Net.ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
         }
@@ -66,13 +66,16 @@ namespace BigDataPipeline
             var config = new NLog.Config.LoggingConfiguration ();
 
             // console output
-            var consoleTarget = new NLog.Targets.ColoredConsoleTarget ();
-            consoleTarget.Layout = "${longdate}\t${callsite}\t${level}\t${message}\t${onexception: \\:[Exception] ${exception:format=tostring}}";
+            if (!Console.IsOutputRedirected)
+            {
+                var consoleTarget = new NLog.Targets.ColoredConsoleTarget ();
+                consoleTarget.Layout = "${longdate}\t${callsite}\t${level}\t${message}\t${onexception: \\:[Exception] ${exception:format=tostring}}";
 
-            config.AddTarget ("console", consoleTarget);
+                config.AddTarget ("console", consoleTarget);
 
-            var rule1 = new NLog.Config.LoggingRule ("*", LogLevel.Trace, consoleTarget);
-            config.LoggingRules.Add (rule1);
+                var rule1 = new NLog.Config.LoggingRule ("*", LogLevel.Trace, consoleTarget);
+                config.LoggingRules.Add (rule1);
+            }
 
 
             // file output
@@ -93,8 +96,7 @@ namespace BigDataPipeline
 
             config.AddTarget ("file", wrapper);
 
-            // configure log from configuration file
-            SimpleHelpers.ConfigManager.AddNonExistingKeys = true;
+            // configure log from configuration file            
             fileTarget.FileName = logFileName;
             var rule2 = new NLog.Config.LoggingRule ("*", currentLogLevel, fileTarget);
             config.LoggingRules.Add (rule2);
@@ -184,7 +186,19 @@ namespace BigDataPipeline
                 }
 
                 // parse console arguments
-                option_set.Parse (args);
+                try
+                {
+                    option_set.Parse (args);
+                }
+                catch { }
+
+                // parse arguments like: key=value
+                for (int ix = 0; ix < args.Length; ix++)
+                {
+                    int p = args[ix].IndexOf ('=');
+                    if (p > 0)
+                        argsOptions.Set (args[ix].ToLowerInvariant ().Substring (0, p).Trim (), args[ix].Substring (p + 1).Trim ());
+                }
 
                 // adjust alias for web hosted configuration file
                 if (String.IsNullOrEmpty (localOptions.Get ("config")))
@@ -223,7 +237,7 @@ namespace BigDataPipeline
             // 1. console arguments
             // 2. web configuration file
             // 3. local configuration file (app.config or web.config)
-            mergedOptions = FlexibleOptions.Merge (externalLoadedOptions, mergedOptions);
+            mergedOptions = FlexibleOptions.Merge (mergedOptions, externalLoadedOptions, argsOptions);
 
             // reinitialize log options if different from local configuration file
             InitializeLog (mergedOptions.Get ("logFilename"), mergedOptions.Get ("logLevel", "Info"));
@@ -309,12 +323,12 @@ namespace BigDataPipeline
                 Console.WriteLine (message);
                 option_set.WriteOptionDescriptions (Console.Out);
             }
-            CloseApplication (-40, true);
+            CloseApplication (0, true);
         }
 
         public static void DisplayHeader (params string[] messages)
         {
-            Console.WriteLine ("##########################################");
+            DisplaySeparator ();
             
             Console.WriteLine ("#  {0}", DateTime.Now.ToString ("yyyy/MM/dd HH:mm:ss"));
             
@@ -329,12 +343,16 @@ namespace BigDataPipeline
                     Console.Write ("#  ");
                     Console.WriteLine (msg ?? "");
                 }
-            }            
+            }
 
-            Console.WriteLine ("##########################################");
+            DisplaySeparator ();
             Console.WriteLine ();
         }
 
+        public static void DisplaySeparator ()
+        {
+            Console.WriteLine ("##########################################");
+        }
         public static void WaitForAnyKey ()
         {
             WaitForAnyKey ("Press any key to continue...");
@@ -414,7 +432,7 @@ namespace BigDataPipeline
             while (!done)
             {
                 // show message
-                var res = GetUserInput (message + " (number)").Trim ();
+                var res = GetUserInput (message + " (float)").Trim ();
                 // treat input
                 if (double.TryParse (res, out value))
                     break;
