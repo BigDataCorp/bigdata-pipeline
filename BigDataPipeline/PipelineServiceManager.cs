@@ -27,6 +27,12 @@ namespace BigDataPipeline
         private System.Threading.Timer _runningTask = null;
         private static int _running = 0;
         private PipelineService service;
+        private FlexibleOptions _options;
+
+        public PipelineServiceManager (FlexibleOptions options)
+        {
+            _options = options;
+        }
        
         /// <summary>
         /// Starts the service.
@@ -100,7 +106,7 @@ namespace BigDataPipeline
             // start up delay
             const int dueTime = 5000; 
             // get update interval from config
-            int period = SimpleHelpers.ConfigManager.Get<int> ("serviceUpdateIntervalInSeconds", 1 * 60) * 1000;
+            int period = _options.Get<int> ("serviceUpdateIntervalInSeconds", 1 * 60) * 1000;
             // update task
             if (_runningTask != null)
                 _runningTask.Change (period, System.Threading.Timeout.Infinite);
@@ -150,24 +156,22 @@ namespace BigDataPipeline
             // prepare service options
             var opt = new BigDataPipeline.Interfaces.Record ();
 
-            foreach (var c in SimpleHelpers.ConfigManager.GetAll ())
+            foreach (var c in _options.Options)
                 opt.Set (c.Key, c.Value);
 
             // prepare module location and work areas
-            SimpleHelpers.ConfigManager.AddNonExistingKeys = true;
-            var modulesDir = prepareFilePath (SimpleHelpers.ConfigManager.Get ("modulesFolder", "${basedir}/modules"));
-            var workDir = prepareFilePath (SimpleHelpers.ConfigManager.Get ("workFolder", "${basedir}/work"));
+            var workDir = prepareFilePath (_options.Get ("workFolder", "${basedir}/work/"));
+            var modulesDir = _options.Get ("modulesFolder", "").Split (',', ';', '|').Select (i => prepareFilePath (i))
+                                 .Concat (_options.Get ("modules", "").Split (',', ';', '|'))
+                                 .Concat (new string[] { "${basedir}/modules/" })
+                                 .Where (i => !String.IsNullOrEmpty (i)).ToArray ();            
             
-            (new System.IO.DirectoryInfo (modulesDir)).Create ();
             (new System.IO.DirectoryInfo (workDir)).Create ();
-            
-            bool enableWebInterface = SimpleHelpers.ConfigManager.Get<bool> ("webInterfaceEnabled", true);
+
+            bool enableWebInterface = _options.Get<bool> ("webInterfaceEnabled", true);
 
             // initializes the service
-            if (enableWebInterface)
-                service.Initialize (modulesDir, workDir, opt, BigDataPipeline.Web.WebServer.GetWebModulesTypes ());
-            else
-                service.Initialize (modulesDir, workDir, opt);
+            service.Initialize (modulesDir, workDir, opt);
 
             // initialize web interface (self host)
             if (enableWebInterface)
@@ -184,8 +188,8 @@ namespace BigDataPipeline
             // change root path to allow dinamic update of the page content
             siteRootPath = System.IO.Path.Combine (AppDomain.CurrentDomain.BaseDirectory).Replace (@"BigDataPipeline\bin\Debug", "BigDataPipeline.Web");
 #endif
-            BigDataPipeline.Web.WebServer.Start (SimpleHelpers.ConfigManager.Get<int> ("webInterfacePort", 8080), siteRootPath, SimpleHelpers.ConfigManager.Get ("webVirtualDirectoryPath", "/bigdatapipeline"), SimpleHelpers.ConfigManager.Get ("webOpenFirewallExceptions", false));
-            if (Environment.UserInteractive && SimpleHelpers.ConfigManager.Get<bool> ("webInterfaceDisplayOnBrowserOnStart", false))
+            BigDataPipeline.Web.WebServer.Start (_options.Get<int> ("webInterfacePort", 8080), siteRootPath, _options.Get ("webVirtualDirectoryPath", "/bigdatapipeline"), _options.Get ("webOpenFirewallExceptions", false));
+            if (Environment.UserInteractive && _options.Get<bool> ("webInterfaceDisplayOnBrowserOnStart", false))
             {
                 DisplayPageOnBrowser ();
             }

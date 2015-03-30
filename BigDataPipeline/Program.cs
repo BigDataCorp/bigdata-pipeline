@@ -94,7 +94,7 @@ namespace BigDataPipeline
             }
             else
             {
-                svr = new PipelineServiceManager ();
+                svr = new PipelineServiceManager (ProgramOptions);
                 svr.Start ();
             }
 
@@ -122,7 +122,7 @@ namespace BigDataPipeline
                 host.Service<PipelineServiceManager> (sc =>
                 {
                     // choose the constructor
-                    sc.ConstructUsing (name => new PipelineServiceManager ());
+                    sc.ConstructUsing (name => new PipelineServiceManager (ProgramOptions));
 
                     // the start and stop methods for the service
                     sc.WhenStarted (s => s.Start ());

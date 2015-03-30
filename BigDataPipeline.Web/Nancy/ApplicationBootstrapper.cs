@@ -273,6 +273,8 @@ namespace BigDataPipeline.Web
             base.ConfigureApplicationContainer (container);
 
             container.Register<JsonSerializer, CustomJsonSerializer> ();
+
+            //BigDataPipeline.Core.ModuleContainer.Instance.GetTypesOf<NancyModule> ();
         }
 
 

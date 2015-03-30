@@ -57,7 +57,7 @@ namespace BigDataPipeline.Core
             get { return _instance; }
         }
 
-        public void Initialize (string modulesFolder, string workFolder, Record systemOptions, params Type[] listOfAdditionalInterfaces)
+        public void Initialize (string[] modulesFolder, string workFolder, Record systemOptions, params Type[] listOfAdditionalInterfaces)
         {
             _instance = this;
 
@@ -85,15 +85,15 @@ namespace BigDataPipeline.Core
             PrepareAccessControl (_systemOptions);
 
             // update storage configuration values
-            foreach (var cfgKey in _systemOptions.Layout)
-            {
-                _storage.SaveConfigValue (cfgKey, _systemOptions.Get (cfgKey, ""));
-            }
+            //foreach (var cfgKey in _systemOptions.Layout)
+            //{
+            //    _storage.SaveConfigValue (cfgKey, _systemOptions.Get (cfgKey, ""));
+            //}
             // load other configuration values from storage
-            foreach (var cfg in _storage.GetConfigValues ())
-            {
-                _systemOptions.Set (cfg.Key, cfg.Value);
-            }
+            //foreach (var cfg in _storage.GetConfigValues ())
+            //{
+            //    _systemOptions.Set (cfg.Key, cfg.Value);
+            //}
 
             // prepare pinelines
             TaskExecutionPipeline.Instance.Initialize (_storage);
@@ -108,7 +108,7 @@ namespace BigDataPipeline.Core
             _logger.Debug ("[done] Initialization...");
         }
   
-        private void LoadModules (string modulesFolder, params Type[] listOfAdditionalInterfaces)
+        private void LoadModules (string[] modulesFolder, params Type[] listOfAdditionalInterfaces)
         {
             _logger.Debug ("[start] Loading modules...");
 
