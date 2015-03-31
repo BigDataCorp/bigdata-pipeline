@@ -5,7 +5,9 @@ var simpleDialog = function () {
 
     this.defaultOptions = {
         successButtonContent: "OK",
-        cancelButtonContent: "Cancelar"
+        cancelButtonContent: "Cancelar",
+        hideSuccessBtn: false,
+        hideCancelBtn: false
     };
 
     this._create = function () {
@@ -196,8 +198,9 @@ var simpleDialog = function () {
         dlg.onSuccess = opt.onSuccess;
         dlg.onCancel = opt.onCancel;
 
-        dlg.divAction.show();
-        dlg.btnSuccess.show();
+
+        dlg.divAction.toggle(!opt.hideSuccessBtn || !opt.hideCancelBtn);
+        dlg.btnSuccess.toggle(!opt.hideSuccessBtn);
         dlg.btnCancel.toggle(!opt.hideCancelBtn);
         if (opt.hideCancelBtn || !(opt.onSuccess || opt.onCancel)) {
             dlg.btnCancel.hide();
@@ -238,6 +241,10 @@ var simpleDialog = function () {
     };
 
     this.info = function (msg, onSuccess, onCancel, hideCancelBtn) {
+        dlg.show(msg, onSuccess, onCancel, hideCancelBtn);
+    };
+
+    this.show = function (msg, onSuccess, onCancel, hideCancelBtn) {
         dlg._prepareDialog(msg || "Operação realizada com sucesso.", onSuccess, onCancel, hideCancelBtn);
         dlg._loadingCounter = -10;
         dlg._displayDialog();

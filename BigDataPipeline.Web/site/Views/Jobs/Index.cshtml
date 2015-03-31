@@ -588,17 +588,22 @@
 
             $scope.addNewJob = function () {
                 $scope.newJob = $scope.createJob();
+                var opts = {
+                    msg: $('#addNewJobDialog'),
+                    successButtonContent: 'Add',
+                    onSuccess: function () {
+                        $timeout(function () {
+                            // set new job
+                            $scope.selectItem($scope.newJob);
+                            // scroll page to edit area
+                            $('html, body').animate({
+                                scrollTop: $("#nav-jobDetails").offset().top
+                            }, 500);
+                        });
+                    }
+                };
                 // show job creation dialog
-                simpleDialog.info($('#addNewJobDialog'), function () {
-                    $timeout(function () {
-                        // set new job
-                        $scope.selectItem($scope.newJob);
-                        // scroll page to edit area
-                        $('html, body').animate({
-                            scrollTop: $("#nav-jobDetails").offset().top
-                        }, 500);
-                    });
-                });
+                simpleDialog.show(opts);
             };
 
             $scope.addNewScheduler = function () {
@@ -773,6 +778,8 @@
             //**
             //** UI components configuration **
             (function () {
+                simpleDialog.defaultOptions.cancelButtonContent = 'Cancel';
+
                 // table configuration
                 $('#job-table').simpleTable({
                     customDataParser: function (i) {
