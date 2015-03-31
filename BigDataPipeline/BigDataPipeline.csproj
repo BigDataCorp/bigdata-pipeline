@@ -71,7 +71,6 @@
   <ItemGroup>
     <Compile Include="ConsoleUtils\ConsoleUtils.cs" />
     <Compile Include="ConsoleUtils\FlexibleOptions.cs" />
-    <Compile Include="ConsoleUtils\Mono.Options.cs" />
     <Compile Include="PipelineServiceManager.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

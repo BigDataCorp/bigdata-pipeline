@@ -45,9 +45,9 @@ namespace BigDataPipeline
         {
             // default parameters initialization from config file
             if (String.IsNullOrEmpty (logFileName))
-                logFileName = SimpleHelpers.ConfigManager.Get<string> ("logFilename", "${basedir}/log/" + typeof (Program).Namespace + ".log");
+                logFileName = System.Configuration.ConfigurationManager.AppSettings["logFilename"] ?? ("${basedir}/log/" + typeof (Program).Namespace + ".log");
             if (String.IsNullOrEmpty (logLevel))
-                logLevel = SimpleHelpers.ConfigManager.Get ("logLevel", "Info");
+                logLevel = System.Configuration.ConfigurationManager.AppSettings["logLevel"] = "Info";
 
             // check if log was initialized with same options
             if (_logFileName == logFileName && _logLevel == logLevel) 
@@ -131,81 +131,47 @@ namespace BigDataPipeline
                 System.Environment.Exit (exitCode);
         }
 
-        internal static FlexibleOptions CheckCommandLineParams (string[] args, bool thrownOnError)
-        {
-            return CheckCommandLineParams (args, null, thrownOnError);
-        }
-
         /// <summary>
-        /// Checks the command line params.
+        /// Checks the command line params.<para/>
+        /// arguments format: key=value or --key value
         /// </summary>
         /// <param name="args">The args.</param>
-        internal static FlexibleOptions CheckCommandLineParams (string[] args, IDictionary<string, string> programOptions, bool thrownOnError)
+        internal static FlexibleOptions CheckCommandLineParams (string[] args, bool thrownOnError)
         {
             FlexibleOptions mergedOptions = null;
-            FlexibleOptions argsOptions = new FlexibleOptions ();
+            FlexibleOptions argsOptions = null;
             FlexibleOptions localOptions = new FlexibleOptions ();
-            FlexibleOptions externalLoadedOptions = null;
-
-            var option_set = new Mono.Options.OptionSet ();
-            option_set.Add ("?|help|h", "Prints out the options.", opt => show_help (opt, option_set))
-                .Add ("logFilename=", "Log filename. Default value is: " + "${basedir}/log/" + typeof (Program).Namespace + ".log", opt => argsOptions.Set ("logFilename", opt))
-                .Add ("logLevel=", "Log level (Fatal, Error, Warn, Info, Debug, Trace, Off). Default value is Info", opt => argsOptions.Set ("logLevel", opt))
-                .Add ("config=|webConfigurationFile=|S3ConfigurationPath=", "Address to a downloadable configuration file with json configuration options (default=[empty]).", opt => argsOptions.Set ("config", opt));
-
-            // To add custom options just folow the example:            
-            // option_set.Add ("t=|threads=", "Number of threads for the queue processing (default=1).", opt => ... );
-            // option_set.Add ("q|queue", "Start processing queue.", opt => ...)
-
+            FlexibleOptions externalLoadedOptions = null;                        
+            
             try
             {
-                // set custom options
-                if (programOptions != null)
+                // parse local configuration file
+                // display the options listed in the configuration file                 
+                try
                 {
-                    foreach (var o in programOptions)
+                    var appSettings = System.Configuration.ConfigurationManager.AppSettings;
+                    foreach (var k in appSettings.AllKeys)
                     {
-                        if (!option_set.Contains (o.Key))
-                        {
-                            string key = o.Key;
-                            option_set.Add (o.Key + "=", o.Value, opt => argsOptions.Set (key, opt));
-                        }
+                        localOptions.Set (k, appSettings[k]);
                     }
                 }
-
-                // parse local configuration file
-                // display the options listed in the configuration file                
-                foreach (var o in SimpleHelpers.ConfigManager.GetAll ())
+                catch (Exception appSettingsEx)
                 {
-                    localOptions.Set (o.Key, o.Value);
-                    if (!option_set.Contains (o.Key))
-                    {
-                        string key = o.Key;
-                        if (key.IndexOf (':') >= 0 || key.IndexOf ('=') >= 0 || key.IndexOf ('|') >= 0) continue;
-                        option_set.Add (o.Key + "=", "Option " + o.Key, opt => argsOptions.Set (key, opt));
-                    }
+                    if (thrownOnError)
+                        throw;
+                    LogManager.GetCurrentClassLogger ().Warn (appSettingsEx);
                 }
 
                 // parse console arguments
-                try
-                {
-                    option_set.Parse (args);
-                }
-                catch { }
-
                 // parse arguments like: key=value
-                for (int ix = 0; ix < args.Length; ix++)
-                {
-                    int p = args[ix].IndexOf ('=');
-                    if (p > 0)
-                        argsOptions.Set (args[ix].ToLowerInvariant ().Substring (0, p).Trim (), args[ix].Substring (p + 1).Trim ());
-                }
-
-                // adjust alias for web hosted configuration file
-                if (String.IsNullOrEmpty (localOptions.Get ("config")))
-                    localOptions.Set ("config", localOptions.Get ("S3ConfigurationPath", localOptions.Get ("webConfigurationFile")));
+                argsOptions = ParseCommandLineArguments (args);
 
                 // merge arguments with app.config options. Priority: arguments > app.config
                 mergedOptions = FlexibleOptions.Merge (localOptions, argsOptions);
+
+                // adjust alias for web hosted configuration file
+                if (String.IsNullOrEmpty (mergedOptions.Get ("config")))
+                    mergedOptions.Set ("config", mergedOptions.Get ("S3ConfigurationPath", mergedOptions.Get ("webConfigurationFile")));
 
                 // load and parse web hosted configuration file (priority order: argsOptions > localOptions)
                 string externalConfigFile = mergedOptions.Get ("config", "");
@@ -218,13 +184,6 @@ namespace BigDataPipeline
                         externalLoadedOptions = FlexibleOptions.Merge (externalLoadedOptions, LoadExtenalConfigurationFile (file.Trim (' ', '\'', '"'), configAbortOnError));
                     }
                 }
-            }
-            catch (Mono.Options.OptionException ex)
-            {
-                show_help ("Error - usage is:", option_set, true);
-                if (thrownOnError)
-                    throw;
-                LogManager.GetCurrentClassLogger ().Error (ex);
             }
             catch (Exception ex)
             {
@@ -247,6 +206,44 @@ namespace BigDataPipeline
             return mergedOptions;
         }
 
+        private static FlexibleOptions ParseCommandLineArguments (string[] args)
+        {
+            var argsOptions = new FlexibleOptions ();
+            if (args != null)
+            {
+                string arg;
+                string lastTag = null;
+                for (int ix = 0; ix < args.Length; ix++)
+                {
+                    arg = args[ix];
+                    // check for option with key=value sintax
+                    // also valid for --key:value
+                    int p = arg.IndexOf ('=');
+                    if (p > 0)
+                    {
+                        argsOptions.Set (arg.Substring (0, p).Trim ().TrimStart ('-', '/'), arg.Substring (p + 1).Trim ());
+                        lastTag = null;
+                        continue;
+                    }
+                    
+                    // search for tag stating with special character
+                    if (arg.StartsWith ("-", StringComparison.Ordinal) || arg.StartsWith ("/", StringComparison.Ordinal))
+                    {
+                        lastTag = arg.Trim ().TrimStart ('-', '/');
+                        argsOptions.Set (lastTag, "true");
+                        continue;
+                    }
+
+                    // set value of last tag
+                    if (lastTag != null)
+                    {
+                        argsOptions.Set (lastTag, arg.Trim ());
+                    }
+                }
+            }
+            return argsOptions;
+        }
+
         private static FlexibleOptions LoadExtenalConfigurationFile (string filePath, bool thrownOnError)
         {
             if (filePath.StartsWith ("http", StringComparison.OrdinalIgnoreCase))
@@ -256,7 +253,7 @@ namespace BigDataPipeline
             else
             {
                 return LoadFileSystemConfigurationFile (filePath, thrownOnError);
-            }           
+            }
         }
 
         private static FlexibleOptions LoadWebConfigurationFile (string filePath, bool thrownOnError)
@@ -290,7 +287,7 @@ namespace BigDataPipeline
                 try
                 {
                     string text;
-                    using (var file = new System.IO.StreamReader (filePath, Encoding.GetEncoding("IDO-8859-1"), true))
+                    using (var file = new System.IO.StreamReader (filePath, Encoding.GetEncoding ("ISO-8859-1"), true))
                     {
                         text = file.ReadToEnd ();
                     }
@@ -310,18 +307,36 @@ namespace BigDataPipeline
             return options;
         }
 
-        private static void show_help (string message, Mono.Options.OptionSet option_set, bool isError = false)
+        private static void show_help (string message, bool isError = false)
         {
+            var files = new string[] { "Configuration.md", "Help.md" };
+            var file = "README.md";
+            var text = "Help command line arguments";
+            foreach (var f in files)
+            {
+                if (System.IO.File.Exists (f))
+                {
+                    file = f; break;
+                }
+                if (System.IO.File.Exists (".docs/" + f))
+                {
+                    file = ".docs/" + f; break;
+                }
+            }
+
+            if (System.IO.File.Exists (file))
+                text = System.IO.File.ReadAllText (file);
+
             if (message == null) return;
             if (isError)
             {
                 Console.Error.WriteLine (message);
-                option_set.WriteOptionDescriptions (Console.Error);
+                Console.Error.WriteLine (text);
             }
             else
             {
                 Console.WriteLine (message);
-                option_set.WriteOptionDescriptions (Console.Out);
+                Console.WriteLine (text);
             }
             CloseApplication (0, true);
         }

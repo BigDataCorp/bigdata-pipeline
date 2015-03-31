@@ -28,7 +28,7 @@ namespace BigDataPipeline
             {
                 AppDomain.CurrentDomain.ProcessExit += new EventHandler (CurrentDomain_ProcessExit);
 
-                useTopshelfService = Console.IsOutputRedirected || args.Any (i => topshelfArguments.Contains (i));
+                useTopshelfService = Console.IsOutputRedirected || args == null || args.Length == 0 || args.Any (i => topshelfArguments.Contains (i));
 
                 // system initialization
                 DefaultProgramInitialization (args);
