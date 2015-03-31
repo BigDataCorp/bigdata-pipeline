@@ -31,7 +31,7 @@ namespace BigDataPipeline
                 useTopshelfService = Console.IsOutputRedirected || args == null || args.Length == 0 || args.Any (i => topshelfArguments.Contains (i));
 
                 // system initialization
-                DefaultProgramInitialization (args);
+                ProgramOptions = ConsoleUtils.Initialize (args, true);
 
                 // start execution
                 Execute ();
@@ -44,28 +44,8 @@ namespace BigDataPipeline
 
             // set success exit code
             ConsoleUtils.CloseApplication (0, false);
-        }
-
+        }        
         
-        private static void DefaultProgramInitialization (string[] args)
-        {
-            ConsoleUtils.DefaultProgramInitialization ();
-
-            // register log listener event
-            ConsoleUtils.InitializeLog ();
-
-            // load configurations
-            ProgramOptions = ConsoleUtils.CheckCommandLineParams (args, true);
-
-            // display program initialization header
-            if (!Console.IsOutputRedirected)
-            {
-                ConsoleUtils.DisplayHeader (
-                    typeof (Program).Namespace,
-                    "Options: " + (ProgramOptions == null ? "none" : "\n#    " + String.Join ("\n#    ", ProgramOptions.Options.Select (i => i.Key + "=" + i.Value))));
-            }
-        }
-
         private static void CurrentDomain_ProcessExit (object sender, EventArgs e)
         {
             if (BigDataPipeline.Core.PipelineService.Instance != null)

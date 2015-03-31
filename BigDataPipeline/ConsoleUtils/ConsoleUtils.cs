@@ -16,6 +16,31 @@ namespace BigDataPipeline
 
         public static FlexibleOptions ProgramOptions { get; private set; }
 
+        public static FlexibleOptions Initialize (string[] args, bool thrownOnError)
+        {
+            DefaultProgramInitialization ();
+
+            InitializeLog ();
+
+            ProgramOptions = CheckCommandLineParams (args, thrownOnError);
+
+            if (ProgramOptions.Get<bool> ("help", false))
+            {
+                show_help ("");
+                CloseApplication (0, true);
+            }
+
+            // display program initialization header
+            if (!Console.IsOutputRedirected)
+            {
+                ConsoleUtils.DisplayHeader (
+                    typeof (Program).Namespace,
+                    "options: " + (ProgramOptions == null ? "none" : "\n#    " + String.Join ("\n#    ", ProgramOptions.Options.Select (i => i.Key + "=" + i.Value))));
+            }
+
+            return ProgramOptions;
+        }
+
         internal static void DefaultProgramInitialization ()
         {
             // set culture info
@@ -309,7 +334,7 @@ namespace BigDataPipeline
 
         private static void show_help (string message, bool isError = false)
         {
-            var files = new string[] { "Configuration.md", "Help.md" };
+            var files = new string[] { "Help.md", "Configuration.md" };
             var file = "README.md";
             var text = "Help command line arguments";
             foreach (var f in files)
