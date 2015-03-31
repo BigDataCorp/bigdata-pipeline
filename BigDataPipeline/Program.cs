@@ -82,13 +82,15 @@ namespace BigDataPipeline
             if (isUserInteractive)
             {
                 ConsoleUtils.DisplayHeader ();
-                // Wait for exit command
                 string line;
-                do
+                if (!useTopshelfService)
                 {
-                    line = ConsoleUtils.GetUserInput ("Type EXIT command to exit application...");
+                    do
+                    {
+                        line = ConsoleUtils.GetUserInput ("Type EXIT command (or Control+C) to exit application...");
+                    }
+                    while (!line.Equals ("exit", StringComparison.OrdinalIgnoreCase));
                 }
-                while (!line.Equals ("exit", StringComparison.OrdinalIgnoreCase)); 
             }
         }
 
