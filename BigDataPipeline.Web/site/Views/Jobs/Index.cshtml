@@ -11,7 +11,7 @@
 
     <div class="separator-8" ng-hide="status"></div>
 
-    <div class="row">
+    <div class="row" id="nav-jobList">
         <div class="col-sm-4">
             <button class="btn btn-default margin-right-16" role="button" ng-click="refresh()">Refresh</button>
             <button class="btn btn-default margin-right-16" role="button" ng-click="addNewJob()">Add Job</button>
@@ -37,8 +37,7 @@
                     <th class="text-center" data-hide="phone" data-sort-ignore="true"></th>
                 </tr>
             </thead>
-            <tbody>
-            </tbody>    
+            <tbody></tbody>
         </table>
     </div>
 
@@ -66,9 +65,12 @@
                                 <h3>Job details</h3>
                             </div>
                             <div class="col-sm-6">
-                                <button class="btn btn-default width-100 pull-right" role="button" ng-click="saveCurrentJob()">Save</button>
+                                <button class="btn btn-default width-50 pull-right margin-horizontal-2" role="button" ng-click="removeJob(selectedJob)"><i class="fa fa-trash-o text-danger"></i></button>
+                                <button class="btn btn-default width-50 pull-right margin-horizontal-2" role="button" ng-click="cloneJob(selectedJob)"><i class="fa fa-files-o"></i></button>
+                                <button class="btn btn-default width-50 pull-right margin-horizontal-2" role="button" ng-click="playJob(selectedJob)"><i class="fa fa-play"></i></button>
+                                <button class="btn btn-default width-100 pull-right margin-horizontal-2" role="button" ng-click="saveCurrentJob()">Save</button>
                             </div>
-                        </div>                        
+                        </div>
 
                         <div class="row">
                             <div class="col-sm-6">
@@ -201,7 +203,10 @@
     <div class="separator-8"></div>
 
     <div class="form-group">
-        <button class="btn btn-default width-100 pull-right" role="button" ng-click="saveCurrentJob()">Save</button>
+        <button class="btn btn-default width-50 pull-right margin-horizontal-2" role="button" ng-click="removeJob(selectedJob)"><i class="fa fa-trash-o text-danger"></i></button>
+        <button class="btn btn-default width-50 pull-right margin-horizontal-2" role="button" ng-click="cloneJob(selectedJob)"><i class="fa fa-files-o"></i></button>
+        <button class="btn btn-default width-50 pull-right margin-horizontal-2" role="button" ng-click="playJob(selectedJob)"><i class="fa fa-play"></i></button>
+        <button class="btn btn-default width-100 pull-right margin-horizontal-2" role="button" ng-click="saveCurrentJob()">Save</button>
     </div>
 
     <!-- Hidden stuff -->
@@ -290,7 +295,8 @@
 
                     <div class="separator-4"></div>
 
-                    <ul><button type="button" role="button" ng-click="addParameters(action)" class="btn btn-default btn-sm pull-right"><i class="fa fa-exchange"></i></button></i>
+                    <ul>
+                        <button type="button" role="button" ng-click="addParameters(action)" class="btn btn-default btn-sm pull-right"><i class="fa fa-exchange"></i></button></i>
                         <li ng-repeat="c in modules.getModule(action.Module).Parameters track by $index">
                             {{ "{0} ({1}) - {2} - {3}".replace('{0}', c.Name || '').replace('{1}', c.Type || '').replace('{2}', c.IsRequired ? 'REQUIRED' : 'OPTIONAL').replace('{3}', c.Description || '') }}
                         </li>
@@ -344,7 +350,7 @@
         ng_app.directive('ngSelect2Bind', ['$q', '$timeout', ngSelect2BindDirective]);
 
         //** angularJs page main controller **
-        ng_app.controller('mainController', function ($scope, $http, $timeout, $compile) {
+        ng_app.controller('mainController', function ($scope, $http, $timeout, $compile, $q) {
             //** angularJs initialization **
             $scope.status = false;
             $scope.message = "loading...";
@@ -408,10 +414,8 @@
             $scope.saveCurrentJob = function () {
                 // try get selected job
                 var job = $scope.selectedJob;
-                if (!job) {
-                    simpleDialog.warning('No job selected!');
-                    return;
-                }
+                if (!$scope.checkForSelectedJob(job, true)) { return; }
+
                 // if mode is json edit, we should try a different approach
                 if ($scope.currentEditMode === 'json') {
                     job = $scope.parseJobFromText();
@@ -434,7 +438,8 @@
             $scope.removeJob = function (job, evt) {
                 if (evt) { evt.stopPropagation(); }
                 if (typeof job === 'string') { job = $scope.getJob(job); }
-                if (!job) { simpleDialog.warning('No job selected!'); return; }
+                if (!$scope.checkForSelectedJob(job, true)) { return; }
+
                 simpleDialog.warning('Remove job <b>' + job.Name + '</b> ?<br/><br/>' + $scope.getSimpleJobDetails(job), function () {
                     $scope.executeJobsQuery('remove', { 'jobId': job.Id.toString() },
                         function (data) {
@@ -447,14 +452,100 @@
             $scope.playJob = function (job, evt) {
                 if (evt) { evt.stopPropagation(); }
                 if (typeof job === 'string') { job = $scope.getJob(job); }
-                if (!job) { simpleDialog.warning('No job selected!'); return; }
-                simpleDialog.warning('Execute job <b>' + job.Name + '</b> ?<br/><br/>' + $scope.getSimpleJobDetails(job), function () {
-                    $scope.executeJobsQuery('play', { 'jobId': job.Id.toString() },
-                        function (data) {
-                            $scope.refresh();
-                            simpleDialog.success('Job executing...<br/><br/>' + $scope.getSimpleJobDetails(job));
+                if (!$scope.checkForSelectedJob(job, true)) { return; }
+                
+                $scope.checkForUnsavedChanges(job, true).
+                    then(function (hasUnsavedChanges) {
+                        if (hasUnsavedChanges) { return; }
+                        // else, proceed
+                        simpleDialog.warning('Execute job <b>' + job.Name + '</b> ?<br/><br/>' + $scope.getSimpleJobDetails(job), function () {
+                            $scope.executeJobsQuery('play', { 'jobId': job.Id.toString() },
+                                function (data) {
+                                    $scope.refresh();
+                                    simpleDialog.success('Job executing...<br/><br/>' + $scope.getSimpleJobDetails(job));
+                                });
                         });
-                });
+                    });
+            };
+
+            $scope.cloneJob = function (job, evt) {
+                if (evt) { evt.stopPropagation(); }
+                if (typeof job === 'string') { job = $scope.getJob(job); }
+                if (!$scope.checkForSelectedJob(job, true)) { return; }
+
+                $scope.checkForUnsavedChanges(job, true).
+                    then(function (hasUnsavedChanges) {
+                        if (hasUnsavedChanges) { return; }
+                        // else, proceed
+                        job = JSON.parse(angular.toJson(job));
+                        delete job.Id;
+                        $scope.addNewJob(job);
+                    });
+            };
+
+            $scope.checkForUnsavedChanges = function (job, displayWarningDialog) {
+                var deferred = $q.defer();
+                if (!job || !$scope.selectedJob) {
+                    deferred.resolve(false);
+                } else {
+                    if (!job.Id || (job.Id === $scope.selectedJob.Id && angular.toJson(job) !== $scope.selectedJobSnapshot)) {
+                        if (displayWarningDialog) {
+                            simpleDialog.warning('Current Job some unsaved changes.<br/>Do you want to continue and lose any changes?',
+                                function () { deferred.resolve(false); },
+                                function () { deferred.resolve(true); });
+                        }
+                        deferred.resolve(true);
+                    } else {
+                        deferred.resolve(false);
+                    }
+                }
+                return deferred.promise;
+            };
+
+            $scope.checkForSelectedJob = function (job, displayWarningDialog) {
+                if (!job || !job.Name) {
+                    if (displayWarningDialog) { simpleDialog.warning('No job selected!'); }
+                    // scroll page to edit area
+                    $('html, body').animate({
+                        scrollTop: $("#nav-jobList").offset().top
+                    }, 500);
+                    return false;
+                }
+                return true;
+            };
+
+            $scope.createJob = function () {
+                return {
+                    Name: '',
+                    Group: '',
+                    Enabled: true,
+                    Options: {},
+                    RootAction: {
+                        Module: '',
+                        Options: {}
+                    }
+                };
+            };
+
+            $scope.addNewJob = function (newJob) {
+                $scope.newJob = newJob || $scope.createJob();
+                var opts = {
+                    msg: $('#addNewJobDialog'),
+                    successButtonContent: 'Add',
+                    onSuccess: function () {
+                        if (!$scope.checkForSelectedJob ($scope.newJob, true)) { return;}
+                        $timeout(function () {
+                            // set new job
+                            $scope.selectItem($scope.newJob);
+                            // scroll page to edit area
+                            $('html, body').animate({
+                                scrollTop: $("#nav-jobDetails").offset().top
+                            }, 500);
+                        });
+                    }
+                };
+                // show job creation dialog
+                simpleDialog.show(opts);
             };
 
             $scope.getJob = function (id) {
@@ -489,6 +580,7 @@
                     if (!item.RootAction.Options) { item.RootAction.Options = {}; }
 
                     $scope.selectedJob = item;
+                    $scope.selectedJobSnapshot = angular.toJson(item);
                     $scope.refreshEditAreaJson();
                 } else {
                     $scope.clearItem();
@@ -538,13 +630,13 @@
                             $('#job-table').data('footable').redraw();
                         }
 
-                        // since we are using simpleTable and fooTable to handle table generation, 
+                        // since we are using simpleTable and fooTable to handle table generation,
                         // we must tell angulaJs to recognize this new nodes...
                         // angularJs compile: tells angular to parse the newly created HTML nodes
                         $compile($('#job-table'))($scope);
 
                         // refresh selected item
-                        $timeout(function () {                            
+                        $timeout(function () {
                             //try to keep any older selection
                             if (lastSelectedItem) {
                                 var i, len;
@@ -571,39 +663,6 @@
                 simpleDialog.info($('#cronEditorDialog'), function () {
                     $timeout(function () { $scope.selectedJob.Scheduler[index] = $('#cronEditorDialogCtrl').cron("value"); });
                 });
-            };
-
-            $scope.createJob = function () {
-                return {
-                    Name: '',
-                    Group: '',
-                    Enabled: true,
-                    Options: {},
-                    RootAction: {
-                        Module: '',
-                        Options: {}
-                    }
-                };
-            };
-
-            $scope.addNewJob = function () {
-                $scope.newJob = $scope.createJob();
-                var opts = {
-                    msg: $('#addNewJobDialog'),
-                    successButtonContent: 'Add',
-                    onSuccess: function () {
-                        $timeout(function () {
-                            // set new job
-                            $scope.selectItem($scope.newJob);
-                            // scroll page to edit area
-                            $('html, body').animate({
-                                scrollTop: $("#nav-jobDetails").offset().top
-                            }, 500);
-                        });
-                    }
-                };
-                // show job creation dialog
-                simpleDialog.show(opts);
             };
 
             $scope.addNewScheduler = function () {
@@ -785,7 +844,8 @@
                     customDataParser: function (i) {
                         return [i.Name, i.Group, i.Description, i.Enabled, i.Id,
                         '<button type="button" role="button" ng-click="playJob(\'' + i.Id + '\', $event)" class="btn btn-default btn-sm margin-horizontal-2"><i class="fa fa-play"></i></button>' +
-                        '<button type="button" role="button" ng-click="removeJob(\'' + i.Id + '\', $event)" class="btn btn-default btn-sm margin-horizontal-2"><i class="fa fa-trash-o text-danger"></i></button>'
+                        '<button type="button" role="button" ng-click="cloneJob(\'' + i.Id + '\', $event)" class="btn btn-default btn-sm margin-horizontal-2"><i class="fa fa-files-o"></i></button>' +
+                        '<button type="button" role="button" ng-click="removeJob(\'' + i.Id + '\', $event)" class="btn btn-default btn-sm margin-horizontal-2"><i class="fa fa-trash-o text-danger"></i></button>'                        
                         ];
                     },
                     onRowSelection: function (data, rowId) {

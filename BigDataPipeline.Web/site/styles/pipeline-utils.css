@@ -33,8 +33,11 @@
 .margin-right-32             { margin-right: 32px; }
 .margin-right-64             { margin-right: 64px; }
 
-.width-full {width: 100%;}
-.width-100 {width: 100px;}
+.width-full     { width: 100%;}
+.width-50       { width: 50px;}
+.width-64       { width: 64px;}
+.width-100      { width: 100px;}
+
 
 .overflow-x { overflow-x: auto;}
 .overflow-y { overflow-y: auto;}
