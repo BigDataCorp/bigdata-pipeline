@@ -482,7 +482,7 @@
 
             $scope.unsavedChangesValidation = function (job, displayWarningDialog) {
                 var deferred = $q.defer();
-                if (!job || !$scope.selectedJob) {
+                if (!job || !$scope.selectedJob || (!job.Id && !job.Name)) {
                     deferred.resolve(job);
                 } else {
                     if ((!job.Id && job.Name) || (job.Id === $scope.selectedJob.Id && angular.toJson(job) !== $scope.selectedJobSnapshot)) {
@@ -572,6 +572,7 @@
             };
 
             $scope.selectItem = function (item) {
+                if (!item) { item = $scope.createJob(); }
                 if (item) {
                     if (!item.Options) { item.Options = {}; }
                     if (!item.RootAction) { item.RootAction = {}; }
@@ -581,7 +582,7 @@
                     $scope.selectedJobSnapshot = angular.toJson(item);
                     $scope.refreshEditAreaJson();
                 } else {
-                    $scope.clearItem();
+                 //   $scope.clearItem();
                 }
             };
 
@@ -617,6 +618,7 @@
                     function (data) {
                         $scope.showMessage('data loaded!');
                         var lastSelectedItem = $scope.selectedJob;
+                        $scope.selectItem(null);
                         $scope.jobList = data;
                         // diplay data (table population and row selection)
                         $('#job-table').data('simpleTable').populateTable(data);
@@ -641,6 +643,7 @@
                                 for (i = 0, len = data.length; i < len; i++) {
                                     if ((!!lastSelectedItem.Id && data[i].Id === lastSelectedItem.Id) ||
                                         (!!lastSelectedItem.Name && data[i].Name === lastSelectedItem.Name)) {
+                                        $scope.selectItem(data[i]);
                                         $('#job-table').data('simpleTable').selectRow(i);
                                         break;
                                     }
@@ -848,7 +851,7 @@
                     },
                     onRowSelection: function (data, rowId) {
                         $timeout(function () {
-                            $scope.unsavedChangesValidation(data, true).then(function () {
+                            $scope.unsavedChangesValidation($scope.selectedJob, true).then(function () {
                                 $scope.selectItem(data);
                             });
                         });
@@ -873,7 +876,7 @@
                     useGentleSelect: true
                 });
 
-                $scope.selectItem($scope.createJob());
+                $scope.selectItem(null);
 
                 $scope.modules.init();
                 $scope.refresh();
