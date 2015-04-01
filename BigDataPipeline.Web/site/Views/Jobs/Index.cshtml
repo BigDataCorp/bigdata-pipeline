@@ -42,7 +42,7 @@
     </div>
 
     <div class="footable hide-if-no-paging">
-        <div id="job-table-pagination" class="pagination"></div>
+        <div id="job-table-pagination hide-if-no-paging" class="pagination"></div>
     </div>
 
     <div class="separator-16"></div>
@@ -427,6 +427,9 @@
             };
 
             $scope.saveJob = function (job) {
+                if (!job.LastExecution && job.LastExecution !== undefined) { delete job.LastExecution; }
+                if (!job.NextExecution && job.NextExecution !== undefined) { delete job.NextExecution; }
+
                 $scope.executeJobsQuery('save',
                             { 'job': angular.toJson(job) },
                             function (data) {
@@ -454,18 +457,15 @@
                 if (typeof job === 'string') { job = $scope.getJob(job); }
                 if (!$scope.checkForSelectedJob(job, true)) { return; }
                 
-                $scope.checkForUnsavedChanges(job, true).
-                    then(function (hasUnsavedChanges) {
-                        if (hasUnsavedChanges) { return; }
-                        // else, proceed
-                        simpleDialog.warning('Execute job <b>' + job.Name + '</b> ?<br/><br/>' + $scope.getSimpleJobDetails(job), function () {
-                            $scope.executeJobsQuery('play', { 'jobId': job.Id.toString() },
-                                function (data) {
-                                    $scope.refresh();
-                                    simpleDialog.success('Job executing...<br/><br/>' + $scope.getSimpleJobDetails(job));
-                                });
-                        });
+                $scope.unsavedChangesValidation(job, true).then(function () {
+                    simpleDialog.warning('Execute job <b>' + job.Name + '</b> ?<br/><br/>' + $scope.getSimpleJobDetails(job), function () {
+                        $scope.executeJobsQuery('play', { 'jobId': job.Id.toString() },
+                            function (data) {
+                                $scope.refresh();
+                                simpleDialog.success('Job executing...<br/><br/>' + $scope.getSimpleJobDetails(job));
+                            });
                     });
+                });
             };
 
             $scope.cloneJob = function (job, evt) {
@@ -473,30 +473,28 @@
                 if (typeof job === 'string') { job = $scope.getJob(job); }
                 if (!$scope.checkForSelectedJob(job, true)) { return; }
 
-                $scope.checkForUnsavedChanges(job, true).
-                    then(function (hasUnsavedChanges) {
-                        if (hasUnsavedChanges) { return; }
-                        // else, proceed
-                        job = JSON.parse(angular.toJson(job));
-                        delete job.Id;
-                        $scope.addNewJob(job);
-                    });
+                $scope.unsavedChangesValidation(job, true).then(function () {
+                    job = JSON.parse(angular.toJson(job));
+                    delete job.Id; // remove the id to create a new job
+                    $scope.addNewJob(job);
+                });
             };
 
-            $scope.checkForUnsavedChanges = function (job, displayWarningDialog) {
+            $scope.unsavedChangesValidation = function (job, displayWarningDialog) {
                 var deferred = $q.defer();
                 if (!job || !$scope.selectedJob) {
-                    deferred.resolve(false);
+                    deferred.resolve(job);
                 } else {
-                    if (!job.Id || (job.Id === $scope.selectedJob.Id && angular.toJson(job) !== $scope.selectedJobSnapshot)) {
+                    if ((!job.Id && job.Name) || (job.Id === $scope.selectedJob.Id && angular.toJson(job) !== $scope.selectedJobSnapshot)) {
                         if (displayWarningDialog) {
-                            simpleDialog.warning('Current Job some unsaved changes.<br/>Do you want to continue and lose any changes?',
-                                function () { deferred.resolve(false); },
-                                function () { deferred.resolve(true); });
+                            simpleDialog.warning('Current Job some unsaved changes.<br/>Do you want to <b>continue and lose</b> any changes?',
+                                function () { deferred.resolve(job); },
+                                function () { deferred.reject('Current Job some unsaved changes'); });
+                        } else {
+                            deferred.reject('Current Job some unsaved changes');
                         }
-                        deferred.resolve(true);
                     } else {
-                        deferred.resolve(false);
+                        deferred.resolve(job);
                     }
                 }
                 return deferred.promise;
@@ -849,7 +847,11 @@
                         ];
                     },
                     onRowSelection: function (data, rowId) {
-                        $timeout(function () { $scope.selectItem(data); });
+                        $timeout(function () {
+                            $scope.unsavedChangesValidation(data, true).then(function () {
+                                $scope.selectItem(data);
+                            });
+                        });
                     }
                 });
 
