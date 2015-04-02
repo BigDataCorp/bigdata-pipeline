@@ -12,15 +12,16 @@
     <meta content="Project description" name="description">
 
     <!-- Flatdoc -->
-    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src="./docs/jquery-1.11.2.min.js"></script>
     <!--[if lt IE 9]>
     <script src='https://cdn.rawgit.com/rstacruz/flatdoc/v0.9.0/legacy.js'></script>
     <![endif]-->
-    <script src='https://cdn.rawgit.com/rstacruz/flatdoc/v0.9.0/flatdoc.js'></script>
+    <script src='./docs/flatdoc.js'></script>
 
     <!-- Flatdoc theme -->
-    <link href='https://cdn.rawgit.com/rstacruz/flatdoc/v0.9.0/theme-white/style.css' rel='stylesheet'>
-    <script src='https://cdn.rawgit.com/rstacruz/flatdoc/v0.9.0/theme-white/script.js'></script>
+    <link href='./docs/flatdoc.theme.style.css' rel='stylesheet'>
+    <script src='./docs/flatdoc.theme.script.js'></script>
+    
 </head>
 
 <body role='flatdoc' class='no-literate big-h3'>
@@ -62,6 +63,11 @@
             }
         }
         
+        function getMDFileFromLocationHash() {
+            var h = getLocationHash();
+            return stringEndsWith(h, '.md') ? h : '';
+        }
+        
         function loadFlatdocFile(docName) {
             docName = getViewName(docName) || '';
             if (docName.toUpperCase() !== 'README') {
@@ -71,7 +77,7 @@
             Flatdoc.run({
                 fetcher: Flatdoc.file(['./docs/Menu.md', docName])
             });
-            setLocationHash(getViewName(docName));
+            setLocationHash(getViewName(docName) + '.md');
         }
 
         $("[role='flatdoc']").on('click', 'a', function (e) {
@@ -83,7 +89,7 @@
         });
         
         // intialization
-        loadFlatdocFile(getLocationHash() || 'README');
+        loadFlatdocFile(getMDFileFromLocationHash() || 'README');
     </script>
 
 </body>

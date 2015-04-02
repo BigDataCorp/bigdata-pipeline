@@ -643,7 +643,6 @@
                                 for (i = 0, len = data.length; i < len; i++) {
                                     if ((!!lastSelectedItem.Id && data[i].Id === lastSelectedItem.Id) ||
                                         (!!lastSelectedItem.Name && data[i].Name === lastSelectedItem.Name)) {
-                                        $scope.selectItem(data[i]);
                                         $('#job-table').data('simpleTable').selectRow(i);
                                         break;
                                     }
@@ -851,9 +850,7 @@
                     },
                     onRowSelection: function (data, rowId) {
                         $timeout(function () {
-                            $scope.unsavedChangesValidation($scope.selectedJob, true).then(function () {
-                                $scope.selectItem(data);
-                            });
+                            $scope.selectItem(data);
                         });
                     }
                 });
