@@ -3,7 +3,7 @@
 }
 
 <div ng-app="app" ng-controller="mainController" id="mainController" ui-i18n="en">
-    <h4>Jobs</h4>
+    <h3>Jobs</h3>
 
     <div class="separator-8"></div>
 
@@ -11,14 +11,14 @@
 
     <div class="separator-8" ng-hide="status"></div>
 
-    <div class="row" id="nav-jobList">
+    <div class="row" id="nav-mainTable">
         <div class="col-sm-4">
             <button class="btn btn-default margin-right-16" role="button" ng-click="refresh()">Refresh</button>
             <button class="btn btn-default margin-right-16" role="button" ng-click="addNewJob()">Add Job</button>
         </div>
 
         <div class="col-sm-8">
-            <input class="form-control" id="job-table-filter" type="text" placeholder="search" />
+            <input class="form-control" id="main-table-filter" type="text" placeholder="search" />
         </div>
     </div>
 
@@ -26,7 +26,7 @@
 
 
     <div class="table-responsive">
-        <table class="table table-condensed table-bordered table-striped table-hover" id="job-table" data-filter="#job-table-filter" data-filter-text-only="true" data-page-size="10" data-page-navigation="#job-table-pagination">
+        <table class="table table-condensed table-bordered table-striped table-hover" id="main-table" data-filter="#main-table-filter" data-filter-text-only="true" data-page-size="12" data-page-navigation="#main-table-pagination">
             <thead>
                 <tr>
                     <th class="text-center">Name</th>
@@ -34,20 +34,30 @@
                     <th class="text-center" data-hide="all">Description</th>
                     <th class="text-center" data-hide="phone">Enabled</th>
                     <th class="text-center" data-hide="phone,tablet">Id</th>
-                    <th class="text-center" data-hide="phone" data-sort-ignore="true"></th>
+                    <th class="text-center" data-hide="phone" data-sort-ignore="true">Actions</th>
                 </tr>
             </thead>
             <tbody></tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="5">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-sm-7 col-md-10">
+                                    <div class="hide-if-no-paging">
+                                        <div id="main-table-pagination" class="pagination"></div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-5 col-md-2"><div class="pull-right"><div class="label label-default">Total: {{ jobList.length }}</div></div></div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </tfoot>
         </table>
     </div>
 
-    <div class="footable hide-if-no-paging">
-        <div id="job-table-pagination hide-if-no-paging" class="pagination"></div>
-    </div>
-
-    <div class="separator-16"></div>
-
-    <div class="row" id="nav-jobDetails">
+    <div class="row" id="nav-selectedItemDetails">
         <div class="col-sm-12">
             <div role="tabpanel">
                 <!-- Nav tabs -->
@@ -65,10 +75,10 @@
                                 <h3>Job details</h3>
                             </div>
                             <div class="col-sm-6">
-                                <button class="btn btn-default width-50 pull-right margin-horizontal-2" role="button" ng-click="removeJob(selectedJob)"><i class="fa fa-trash-o text-danger"></i></button>
-                                <button class="btn btn-default width-50 pull-right margin-horizontal-2" role="button" ng-click="cloneJob(selectedJob)"><i class="fa fa-files-o"></i></button>
-                                <button class="btn btn-default width-50 pull-right margin-horizontal-2" role="button" ng-click="playJob(selectedJob)"><i class="fa fa-play"></i></button>
-                                <button class="btn btn-default width-100 pull-right margin-horizontal-2" role="button" ng-click="saveCurrentJob()">Save</button>
+                                <button class="btn btn-default width-50 pull-right margin-horizontal-2" role="button" ng-click="removeJob(selectedJob)" title="delete job"><i class="fa fa-trash-o text-danger"></i></button>
+                                <button class="btn btn-default width-50 pull-right margin-horizontal-2" role="button" ng-click="cloneJob(selectedJob)" title="clone job"><i class="fa fa-files-o"></i></button>
+                                <button class="btn btn-default width-50 pull-right margin-horizontal-2" role="button" ng-click="playJob(selectedJob)" title="execute job"><i class="fa fa-play"></i></button>
+                                <button class="btn btn-default width-100 pull-right margin-horizontal-2" role="button" ng-click="saveCurrentJob()" title="save job">Save</button>
                             </div>
                         </div>
 
@@ -203,10 +213,10 @@
     <div class="separator-8"></div>
 
     <div class="form-group">
-        <button class="btn btn-default width-50 pull-right margin-horizontal-2" role="button" ng-click="removeJob(selectedJob)"><i class="fa fa-trash-o text-danger"></i></button>
-        <button class="btn btn-default width-50 pull-right margin-horizontal-2" role="button" ng-click="cloneJob(selectedJob)"><i class="fa fa-files-o"></i></button>
-        <button class="btn btn-default width-50 pull-right margin-horizontal-2" role="button" ng-click="playJob(selectedJob)"><i class="fa fa-play"></i></button>
-        <button class="btn btn-default width-100 pull-right margin-horizontal-2" role="button" ng-click="saveCurrentJob()">Save</button>
+        <button class="btn btn-default width-50 pull-right margin-horizontal-2" role="button" ng-click="removeJob(selectedJob)" title="delete job"><i class="fa fa-trash-o text-danger"></i></button>
+        <button class="btn btn-default width-50 pull-right margin-horizontal-2" role="button" ng-click="cloneJob(selectedJob)" title="clone job"><i class="fa fa-files-o"></i></button>
+        <button class="btn btn-default width-50 pull-right margin-horizontal-2" role="button" ng-click="playJob(selectedJob)" title="execute job"><i class="fa fa-play"></i></button>
+        <button class="btn btn-default width-100 pull-right margin-horizontal-2" role="button" ng-click="saveCurrentJob()" title="save job">Save</button>
     </div>
 
     <!-- Hidden stuff -->
@@ -295,8 +305,8 @@
 
                     <div class="separator-4"></div>
 
-                    <ul>
-                        <button type="button" role="button" ng-click="addParameters(action)" class="btn btn-default btn-sm pull-right"><i class="fa fa-exchange"></i></button></i>
+                    <button type="button" role="button" ng-click="addParameters(action)" class="btn btn-default btn-sm pull-right"><i class="fa fa-exchange"></i></button>
+                    <ul>                        
                         <li ng-repeat="c in modules.getModule(action.Module).Parameters track by $index">
                             {{ "{0} ({1}) - {2} - {3}".replace('{0}', c.Name || '').replace('{1}', c.Type || '').replace('{2}', c.IsRequired ? 'REQUIRED' : 'OPTIONAL').replace('{3}', c.Description || '') }}
                         </li>
@@ -505,7 +515,7 @@
                     if (displayWarningDialog) { simpleDialog.warning('No job selected!'); }
                     // scroll page to edit area
                     $('html, body').animate({
-                        scrollTop: $("#nav-jobList").offset().top
+                        scrollTop: $("#nav-mainTable").offset().top
                     }, 500);
                     return false;
                 }
@@ -537,7 +547,7 @@
                             $scope.selectItem($scope.newJob);
                             // scroll page to edit area
                             $('html, body').animate({
-                                scrollTop: $("#nav-jobDetails").offset().top
+                                scrollTop: $("#nav-selectedItemDetails").offset().top
                             }, 500);
                         });
                     }
@@ -621,19 +631,19 @@
                         $scope.selectItem(null);
                         $scope.jobList = data;
                         // diplay data (table population and row selection)
-                        $('#job-table').data('simpleTable').populateTable(data);
+                        $('#main-table').data('simpleTable').populateTable(data);
 
                         // fooTable initilization (sort and pagination)
-                        if (!$('#job-table').data('footable')) {
-                            $('#job-table').footable();
+                        if (!$('#main-table').data('footable')) {
+                            $('#main-table').footable();
                         } else {
-                            $('#job-table').data('footable').redraw();
+                            $('#main-table').data('footable').redraw();
                         }
 
                         // since we are using simpleTable and fooTable to handle table generation,
                         // we must tell angulaJs to recognize this new nodes...
                         // angularJs compile: tells angular to parse the newly created HTML nodes
-                        $compile($('#job-table'))($scope);
+                        $compile($('#main-table'))($scope);
 
                         // refresh selected item
                         $timeout(function () {
@@ -643,7 +653,7 @@
                                 for (i = 0, len = data.length; i < len; i++) {
                                     if ((!!lastSelectedItem.Id && data[i].Id === lastSelectedItem.Id) ||
                                         (!!lastSelectedItem.Name && data[i].Name === lastSelectedItem.Name)) {
-                                        $('#job-table').data('simpleTable').selectRow(i);
+                                        $('#main-table').data('simpleTable').selectRow(i);
                                         break;
                                     }
                                 }
@@ -834,18 +844,27 @@
                 }
             };
 
+
             //**
-            //** UI components configuration **
+            //** Startup and UI components configuration **
             (function () {
+                // simple dialog localization
                 simpleDialog.defaultOptions.cancelButtonContent = 'Cancel';
 
                 // table configuration
-                $('#job-table').simpleTable({
+                $('#main-table').simpleTable({
                     customDataParser: function (i) {
-                        return [i.Name, i.Group, i.Description, i.Enabled, i.Id,
-                        '<button type="button" role="button" ng-click="playJob(\'' + i.Id + '\', $event)" class="btn btn-default btn-sm margin-horizontal-2"><i class="fa fa-play"></i></button>' +
-                        '<button type="button" role="button" ng-click="cloneJob(\'' + i.Id + '\', $event)" class="btn btn-default btn-sm margin-horizontal-2"><i class="fa fa-files-o"></i></button>' +
-                        '<button type="button" role="button" ng-click="removeJob(\'' + i.Id + '\', $event)" class="btn btn-default btn-sm margin-horizontal-2"><i class="fa fa-trash-o text-danger"></i></button>'                        
+                        return [
+                            i.Name,
+                            i.Group,
+                            i.Description,
+                            '<div class="text-center">' + (i.Enabled ? '<span style="display:none">1</span><i class="fa fa-toggle-on text-success" title="enabled"></i>' : '<span style="display:none">2</span><i class="fa fa-toggle-off text-muted" title="disabled"></i>') + '</div>',
+                            i.Id,
+                            '<div class="text-center">' +
+                            '<button type="button" role="button" ng-click="playJob(\'' + i.Id + '\', $event)" class="btn btn-default btn-sm margin-horizontal-2" title="execute job"><i class="fa fa-play"></i></button>' +
+                            '<button type="button" role="button" ng-click="cloneJob(\'' + i.Id + '\', $event)" class="btn btn-default btn-sm margin-horizontal-2" title="clone job"><i class="fa fa-files-o"></i></button>' +
+                            '<button type="button" role="button" ng-click="removeJob(\'' + i.Id + '\', $event)" class="btn btn-default btn-sm margin-horizontal-2" title="delete job"><i class="fa fa-trash-o text-danger"></i></button>' +
+                            '</div>'
                         ];
                     },
                     onRowSelection: function (data, rowId) {
