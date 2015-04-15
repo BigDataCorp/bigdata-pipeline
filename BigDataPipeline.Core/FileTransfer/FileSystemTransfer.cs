@@ -178,7 +178,7 @@ namespace BigDataPipeline.Core
 
             try
             {
-                using (var output = new FileStream (newFile, FileMode.Create, FileAccess.Write, FileShare.Delete | FileShare.Read, FileServiceConnectionInfo.DefaultWriteBufferSize))
+                using (var output = new FileStream (newFile, FileMode.Create, FileAccess.Write, FileShare.Delete, FileServiceConnectionInfo.DefaultWriteBufferSize))
                 {
                     f.FileStream.CopyTo (output, FileServiceConnectionInfo.DefaultWriteBufferSize >> 2);
                 }
@@ -233,7 +233,7 @@ namespace BigDataPipeline.Core
 
                 try
                 {
-                    using (var file = new FileStream (newFile, FileMode.Create, FileAccess.Write, FileShare.Delete | FileShare.Read, FileServiceConnectionInfo.DefaultWriteBufferSize))
+                    using (var file = new FileStream (newFile, FileMode.Create, FileAccess.Write, FileShare.Delete, FileServiceConnectionInfo.DefaultWriteBufferSize))
                     {
                         f.FileStream.CopyTo (file, FileServiceConnectionInfo.DefaultWriteBufferSize >> 2);
                     }
@@ -308,7 +308,7 @@ namespace BigDataPipeline.Core
             {
                 FileTransferHelpers.CreateDirectory (System.IO.Path.GetDirectoryName (destFullPath));
 
-                using (var file = new FileStream (destFullPath, FileMode.Create, FileAccess.Write, FileShare.Delete | FileShare.Read, FileServiceConnectionInfo.DefaultWriteBufferSize))
+                using (var file = new FileStream (destFullPath, FileMode.Create, FileAccess.Write, FileShare.Delete, FileServiceConnectionInfo.DefaultWriteBufferSize))
                 {
                     localFile.CopyTo (file, FileServiceConnectionInfo.DefaultWriteBufferSize >> 2);
                 }
@@ -341,7 +341,7 @@ namespace BigDataPipeline.Core
         {
             FileTransferHelpers.CreateDirectory (System.IO.Path.GetDirectoryName (destFullPath));
             // upload
-            return new FileStream (destFullPath, FileMode.Create, FileAccess.Write, FileShare.Delete | FileShare.Read, FileServiceConnectionInfo.DefaultWriteBufferSize);
+            return new FileStream (destFullPath, FileMode.Create, FileAccess.Write, FileShare.Delete, FileServiceConnectionInfo.DefaultWriteBufferSize);
         }
     }
 }
