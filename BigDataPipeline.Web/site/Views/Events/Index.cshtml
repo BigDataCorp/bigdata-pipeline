@@ -8,10 +8,51 @@
 
     <div class="separator-8"></div>
 
-    <div id="status" class="alert" ng-hide="status" ng-class="{'alert-success': status, 'alert-danger': !status}">{{ message }}</div>
+    <div class="row" id="nav-mainTable">
+        <div class="col-sm-4">
+            <button class="btn btn-default margin-right-16" role="button" ng-click="refresh()">Refresh</button>
+        </div>
 
-    <span id="dataTableEvents-exporter-link">&nbsp;</span>
-    <div id="dataTableEvents" ui-grid="dataTableEvents" ui-grid-selection ui-grid-exporter external-scopes="gridParentScope" style="height:500px;"></div>
+        <div class="col-sm-8">
+            <input class="form-control" id="main-table-filter" type="text" placeholder="search" />
+        </div>
+    </div>
+
+    <div class="separator-8"></div>
+
+
+    <div class="table-responsive">
+        <table class="table table-condensed table-bordered table-striped table-hover" id="main-table" data-filter="#main-table-filter" data-filter-text-only="true" data-page-size="25" data-page-navigation="#main-table-pagination">
+            <thead>
+                <tr>
+                    <th class="text-center">Date</th>
+                    <th class="text-center">Job Id</th>
+                    <th class="text-center">Job</th>
+                    <th class="text-center">Module</th>
+                    <th class="text-center">Level</th>
+                    <th class="text-center">Message</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="6">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-sm-7 col-md-10">
+                                    <div class="hide-if-no-paging">
+                                        <div id="main-table-pagination" class="pagination"></div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-5 col-md-2"><div class="pull-right"><div class="label label-default">Total: {{ list.length }}</div></div></div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    
 
 </div>
 
@@ -19,106 +60,165 @@
 @section scripts {
 
     <script type="text/javascript">
+        function cropLongText(text, maxLength, removeHtml) {
+            text = text || "";
+            if (removeHtml) {
+                // create a html node and use browser methods to get the text
+                var dummyNode = document.createElement('div');
+                dummyNode.innerHTML = text.replace(/>/g, '> ');
+                text = dummyNode.innerText || dummyNode.textContent;
+            }
+            if (!maxLength || maxLength < 40) { maxLength = 40; }
+            var looseMax = Math.ceil(maxLength * 0.1);
+            if (looseMax < 10) { looseMax = 10; }
+
+            if (text.length <= maxLength)
+                return text;
+            var textReduced = text.substring(0, maxLength - 10);
+
+            text = text.substring(maxLength - 10);
+            var ix = text.indexOf(" ");
+            if (ix < 0) { ix = 10; }
+            else if (ix > looseMax) { ix = 10; }
+            text = text.substring(0, ix);
+
+            return textReduced + text + " ...";
+        }
+
+        function makeLongTextBreakable(text, breakAll) {            
+            return '<span class="word-break-{0}">'.replace('{0}', (breakAll ? 'all' : 'word')) + text + '</span>';
+        }
+
         //** angularJs initialization **
-        var ng_app = angular.module('app', ['ui.grid', 'ui.grid.selection', 'ui.grid.exporter']);
-        ng_app.directive('ngSelect2Bind', ['$q', ngSelect2BindDirective]);
+        var ng_app = angular.module('app', []);
+        ng_app.directive('ngSelect2Bind', ['$q', '$timeout', ngSelect2BindDirective]);
 
         //** angularJs page main controller **
-        ng_app.controller('mainController', function ($scope, $http, $timeout) {
+        ng_app.controller('mainController', function ($scope, $http, $timeout, $compile, $q) {
             //** properties declaration **
-            $scope.status = false;
-            $scope.message = "loading...";
-            $scope.gridParentScope = $scope;
+            $scope.list = [];
             
-            //** UI components configuration **
-            // data table configuration
-            var actionsTemplate = '<div><button type="button" role="button" ng-click="getExternalScopes().selectItem(row, \'play\')" class="btn btn-default btn-sm margin-horizontal-2"><i class="fa fa-play"></i></button>' +
-                           '<button type="button" role="button" ng-click="getExternalScopes().selectItem(row, \'remove\')" class="btn btn-default btn-sm margin-horizontal-2"><i class="fa fa-trash-o text-danger"></i></button></div>';
-
-            $scope.dataTableEvents = {
-                enableGridMenu: true,
-                exporterMenuCsv: true,
-                exporterMenuPdf: false,
-                rowHeight: 36,
-                enableSelectionBatchEvent: false,
-                exporterCsvLinkElement: angular.element(document.querySelectorAll("#dataTableEvents-exporter-link")),
-                onRegisterApi: function (gridApi) {
-                    $scope.dataTableEventsApi = gridApi;
-
-                    gridApi.selection.on.rowSelectionChanged($scope, function (row) {
-                        var msg = 'row selected ' + row.isSelected + row.entity.Message;
-                        console.log(row);
-                    });
-
-                    //gridApi.selection.on.rowSelectionChangedBatch($scope, function (rows) {
-                    //    var msg = 'rows changed ' + rows.length;
-                    //    console.log(msg);
-                    //});
-                },
-                columnDefs: [
-                    { name: 'Date', field: "Date",cellFilter: "date:'yyyy-MM-dd HH:mm:ss.sss'", width:'18%', resizable: true },
-                    { name: 'JobId', field: "JobId", width: '14%', resizable: true },
-                    { name: 'Job', field: "Job", width: '14%', resizable: true },
-                    { name: 'Module', field: "Module", width: '20%', resizable: true },
-                    { name: 'Level', field: "Level", width: '8%', resizable: true },
-                    { name: 'Message', field:"Message", width:'40%', resizable: true }//,
-                    //{ name: 'actions', width:'40%', resizable: true, enableColumnMenu: false, cellTemplate: actionsTemplate }
-                ],
-                data: []
-            };
-
-
+            //**
             //** methods and behaviors **
-            $scope.hideMessage = function () {
-                $('#status').hide();
-            };
-
-            $scope.showMessage = function (msg, evtType) {
-                $('#status').html(msg)
-                    .toggleClass('alert-success', evtType === "success")
-                    .toggleClass('alert-danger', evtType === "error")
-                    .toggleClass('alert-warning', evtType === "warning")
-                    .toggleClass('alert-info', (evtType || 'info') === "info")
-                    .show();
+            $scope.executeQuery = function (url, operation, data, onsuccess, onerror) {
+                var p = {
+                    op: operation,
+                    data: data
+                };
+                simpleDialog.loading();
+                return $.ajax({
+                    url: url,
+                    cache: false,
+                    async: true,
+                    type: 'POST',
+                    dataType: "json",
+                    data: angular.toJson(p),
+                    contentType: 'application/json; charset=utf-8',
+                    success: function (data) {
+                        if (data && data.status) {
+                            simpleDialog.close();
+                            if (typeof onsuccess == 'function') {
+                                $timeout(function () {
+                                    onsuccess(data.result);
+                                });
+                            }
+                        } else {
+                            if (data && data.message) {
+                                simpleDialog.warning(data.message);
+                            } else {
+                                simpleDialog.error();
+                            }
+                            if (typeof onerror == 'function') {
+                                $timeout(function () {
+                                    onerror();
+                                });
+                            }
+                        }
+                    },
+                    error: function () {
+                        simpleDialog.error();
+                        if (typeof onerror == 'function') {
+                            $timeout(function () {
+                                onerror();
+                            });
+                        }
+                    }
+                });
             };
 
             $scope.refresh = function () {
                 simpleDialog.loading();
 
-                $http.post("./events/query", { op: "load", data: {} })
-                .success(function (data, status, headers, config) {
-                    $scope.status = data.status;
-                    $scope.message = data.message || data.status ? "Success" : "Internet connection error";
-                    $scope.dataTableEvents.data = data.result;
-                    simpleDialog.close();
-                })
-                .error(function (data, status, headers, config) {
-                    $scope.showMessage('Internet connection error', 'error');
-                    simpleDialog.error('Internet connection error');
+                $scope.executeQuery("./events/query", "load", {},
+                    function (data) {
+                        $scope.list = data;
+                        var lastSelectedItem = $scope.selectedItem;
+                        $scope.selectItem(null);
+
+                        // diplay data (table population and row selection)
+                        $('#main-table').data('simpleTable').populateTable($scope.list);
+
+                        // fooTable initilization (sort and pagination)
+                        if (!$('#main-table').data('footable')) {
+                            $('#main-table').footable();
+                        } else {
+                            $('#main-table').data('footable').redraw();
+                        }
+
+                        // since we are using simpleTable and fooTable to handle table generation,
+                        // we must tell angulaJs to recognize this new nodes...
+                        // angularJs compile: tells angular to parse the newly created HTML nodes
+                        $compile($('#main-table'))($scope);
+                    });
+            };
+
+            $scope.selectItem = function (item) {
+                if (item && item.Message) {
+                    simpleDialog.info($scope.getSimpleEventDetails(item));
+                }
+            };
+
+            $scope.getSimpleEventDetails = function (item) {
+                var itemDetails = '<ul><li>Date: {0}</li><li>Job Id: {1}</li><li>Job Name: {2}</li><li>Module: {3}</li><li>Level: {4}</li><li>Message:</li></ul><div class="well word-break-word">{5}</div>';
+                return itemDetails.replace('{0}', item.Date).replace('{1}', item.JobId).replace('{2}', item.Job).replace('{3}', item.Module).replace('{4}', item.Level).replace('{5}', item.Message);
+            };
+
+            //**
+            //** Startup and UI components configuration **
+            (function () {
+                // simple dialog localization
+                simpleDialog.defaultOptions.cancelButtonContent = 'Cancel';
+
+                // table configuration
+                $('#main-table').simpleTable({
+                    customDataParser: function (i) {
+                        return [
+                            i.Date.replace('T', ' ').substring(0, 19),
+                            makeLongTextBreakable(i.JobId, true),
+                            makeLongTextBreakable(i.Job),
+                            makeLongTextBreakable(i.Module),
+                            i.Level,
+                            makeLongTextBreakable(cropLongText(i.Message, 200))
+                        ];
+                    },
+                    onRowSelection: function (data, rowId) {
+                        $timeout(function () {
+                            $scope.selectItem(data);
+                        });
+                    }
                 });
 
-                // $timeout(function () { })                
-            };
+                $scope.selectItem(null);
 
-            $scope.selectItem = function (row, action) {
-                if (!window.console) return;
-                if (action === 'remove')
-                    console.error(row.entity);
-                else if (action === 'play')
-                    console.info(row.entity);
-                else
-                    console.log(row.entity);
-
-                console.log($scope.dataTableEventsApi.selection.getSelectedRows());
-            };
+                $scope.refresh();
+            }());
+            
         });
 
 
         // initialization
-        $(document).ready(function () {
-            angular.element('#mainController').scope().refresh();
-
-            
-        });
+        //$(document).ready(function () {
+        //    angular.element('#mainController').scope().refresh();            
+        //});
     </script>
 }

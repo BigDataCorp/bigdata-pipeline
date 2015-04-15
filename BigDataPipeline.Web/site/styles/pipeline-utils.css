@@ -73,3 +73,14 @@
     -ms-hyphens: auto;
         hyphens: auto;
 }
+
+
+.word-break-word {
+    -ms-word-break: break-word;
+     word-break: break-word;
+
+-webkit-hyphens: auto;
+   -moz-hyphens: auto;
+    -ms-hyphens: auto;
+        hyphens: auto;
+}
