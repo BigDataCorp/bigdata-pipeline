@@ -1,41 +1,283 @@
 ﻿@{
-    Layout = Url.Content("Shared/_Layout.cshtml");
+    Layout = Url.Content ("Shared/_Layout.cshtml");
 }
 
-
 <div ng-app="app" ng-controller="mainController" id="mainController" ui-i18n="en">
-    <h4>Pipeline Modules</h4>
+    <h3>Modules</h3>
 
     <div class="separator-8"></div>
 
-    <div id="status" class="alert alert-danger">Not Implemented!</div>
+    <div class="row" id="nav-mainTable">
+        <div class="col-sm-4">
+            <button class="btn btn-default margin-right-16" role="button" ng-click="refresh()">Refresh</button>
+        </div>
+
+        <div class="col-sm-8">
+            <input class="form-control" id="main-table-filter" type="text" placeholder="search" />
+        </div>
+    </div>
+
+    <div class="separator-8"></div>
+
+
+    <div class="table-responsive">
+        <table class="table table-condensed table-bordered table-striped table-hover" id="main-table" data-filter="#main-table-filter" data-filter-text-only="true" data-page-size="12" data-page-navigation="#main-table-pagination">
+            <thead>
+                <tr>
+                    <th class="text-center">Name</th>
+                    <th class="text-center" data-hide="phone">Description</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="5">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-sm-7 col-md-10">
+                                    <div class="hide-if-no-paging">
+                                        <div id="main-table-pagination" class="pagination"></div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-5 col-md-2"><div class="pull-right"><div class="label label-default">Total: {{ modules.list.length }}</div></div></div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+
+    <div class="row" id="nav-selectedItemDetails">
+        <div class="col-sm-12">
+
+            <h3>Module details</h3>
+            <div class="form-group">
+                <input type="text" class="form-control" ng-model="selectedItem.FullName" readonly placeholder="module name"/>
+            </div>
+            <div class="form-group">
+                <textarea class="form-control" rows="16" readonly>{{ selectedItem.Description }}</textarea>
+            </div>
+
+            <div class="separator-4"></div>
+
+            <hr />
+            <h3>Parameters</h3>
+
+            <ul>
+                <li ng-repeat="c in selectedItem.Parameters track by $index">
+                    {{ "{0} ({1}) - {2} - {3}".replace('{0}', c.Name || '').replace('{1}', c.Type || '').replace('{2}', c.IsRequired ? 'REQUIRED' : 'OPTIONAL').replace('{3}', c.Description || '') }}
+                </li>
+            </ul>
+        </div>
+    </div>
+
 </div>
 
 
 @section scripts {
 
     <script type="text/javascript">
+
+        function cropLongText(text, maxLength, removeHtml) {
+            text = text || "";
+            if (removeHtml) {
+                // create a html node and use browser methods to get the text
+                var dummyNode = document.createElement('div');
+                dummyNode.innerHTML = text.replace(/>/g, '> ');
+                text = dummyNode.innerText || dummyNode.textContent;
+            }
+            if (!maxLength || maxLength < 40) { maxLength = 40; }
+            var looseMax = Math.ceil(maxLength * 0.1);
+            if (looseMax < 10) { looseMax = 10; }
+
+            if (text.length <= maxLength)
+                return text;
+            var textReduced = text.substring(0, maxLength - 10);
+
+            text = text.substring(maxLength - 10);
+            var ix = text.indexOf(" ");
+            if (ix < 0) { ix = 10; }
+            else if (ix > looseMax) { ix = 10; }
+            text = text.substring(0, ix);
+
+            return textReduced + text + " ...";
+        }
+
         //** angularJs initialization **
-        var ng_app = angular.module('app', ['ui.grid', 'ui.grid.selection', 'ui.grid.exporter']);
+        var ng_app = angular.module('app', []);
         ng_app.directive('ngSelect2Bind', ['$q', '$timeout', ngSelect2BindDirective]);
 
         //** angularJs page main controller **
-        ng_app.controller('mainController', function ($scope, $http, $timeout) {
+        ng_app.controller('mainController', function ($scope, $http, $timeout, $compile, $q) {
             //** properties declaration **
+            $scope.selectedItem = {
+                Parameters: []
+            };
 
 
-            //** UI components configuration **
-
-
+            //**
             //** methods and behaviors **
+            $scope.executeQuery = function (url, operation, data, onsuccess, onerror) {
+                var p = {
+                    op: operation,
+                    data: data
+                };
+                simpleDialog.loading();
+                return $.ajax({
+                    url: url,
+                    cache: false,
+                    async: true,
+                    type: 'POST',
+                    dataType: "json",
+                    data: angular.toJson(p),
+                    contentType: 'application/json; charset=utf-8',
+                    success: function (data) {
+                        if (data && data.status) {
+                            simpleDialog.close();
+                            if (typeof onsuccess == 'function') {
+                                $timeout(function () {
+                                    onsuccess(data.result);
+                                });
+                            }
+                        } else {
+                            if (data && data.message) {
+                                simpleDialog.warning(data.message);
+                            } else {
+                                simpleDialog.error();
+                            }
+                            if (typeof onerror == 'function') {
+                                $timeout(function () {
+                                    onerror();
+                                });
+                            }
+                        }
+                    },
+                    error: function () {
+                        simpleDialog.error();
+                        if (typeof onerror == 'function') {
+                            $timeout(function () {
+                                onerror();
+                            });
+                        }
+                    }
+                });
+            };
 
+            $scope.executeModulesQuery = function (operation, data, onsuccess, onerror) {
+                return $scope.executeQuery("./modules/query", operation, data, onsuccess, onerror);
+            };
+
+            $scope.refresh = function () {
+                var promise = $q.when($scope.modules.init());
+                promise.then(function () {
+                    var lastSelectedItem = $scope.selectedItem;
+                    $scope.selectItem(null);
+                    
+                    // diplay data (table population and row selection)
+                    $('#main-table').data('simpleTable').populateTable($scope.modules.list);
+
+                    // fooTable initilization (sort and pagination)
+                    if (!$('#main-table').data('footable')) {
+                        $('#main-table').footable();
+                    } else {
+                        $('#main-table').data('footable').redraw();
+                    }
+
+                    // since we are using simpleTable and fooTable to handle table generation,
+                    // we must tell angulaJs to recognize this new nodes...
+                    // angularJs compile: tells angular to parse the newly created HTML nodes
+                    $compile($('#main-table'))($scope);
+
+                    // refresh selected item
+                    $timeout(function () {
+                        //try to keep any older selection
+                        if (lastSelectedItem) {
+                            var i, len;
+                            for (i = 0, len = data.length; i < len; i++) {
+                                if (!!lastSelectedItem.Name && data[i].FullName === lastSelectedItem.FullName) {
+                                    $('#main-table').data('simpleTable').selectRow(i);
+                                    break;
+                                }
+                            }
+                        }
+                    });
+                });
+            };
+
+            $scope.selectItem = function (item) {
+                if (!item) { item = {}; }
+                if (item) {
+                    if (!item.Parameters) { item.Parameters = []; }
+
+                    $scope.selectedItem = item;
+                }
+            };
+
+
+            //**
+            //** define modules related operations **
+            $scope.modules = {
+                list: [],
+
+                init: function () {
+                    var _this = this;
+                    return $scope.executeModulesQuery('load', null, function (data) {
+                        _this.list = data;
+                        _this.names = Lazy(_this.list).map(function (c) { return c.FullName; }).sort().toArray();
+                    });
+                },
+
+                getNames: function () {
+                    return this.names;
+                },
+
+                getModule: function (name) {
+                    var l = this.list || [], i;
+                    for (i = 0; i < l.length; i++) {
+                        if (l[i].FullName === name) {
+                            return l[i];
+                        }
+                    }
+                    return {};
+                }
+            };
+
+
+
+            //**
+            //** Startup and UI components configuration **
+            (function () {
+                // simple dialog localization
+                simpleDialog.defaultOptions.cancelButtonContent = 'Cancel';
+
+                // table configuration
+                $('#main-table').simpleTable({
+                    customDataParser: function (i) {
+                        return [
+                            i.FullName,
+                            cropLongText(i.Description, 100)
+                        ];
+                    },
+                    onRowSelection: function (data, rowId) {
+                        $timeout(function () {
+                            $scope.selectItem(data);
+                        });
+                    }
+                });
+
+                $scope.selectItem(null);
+
+                $scope.refresh();
+            }());
 
         });
 
 
         // initialization
         $(document).ready(function () {
-            //angular.element('#mainController').scope().refresh();            
+            //angular.element('#mainController').scope().refresh();
         });
     </script>
 }
