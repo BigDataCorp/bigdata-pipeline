@@ -188,6 +188,11 @@ namespace BigDataPipeline
             // change root path to allow dinamic update of the page content
             siteRootPath = System.IO.Path.Combine (AppDomain.CurrentDomain.BaseDirectory).Replace (@"BigDataPipeline\bin\Debug", "BigDataPipeline.Web");
 #endif
+            if (_options.Get("addUrlReservation", false))
+            {
+                BigDataPipeline.Web.WebServer.AddUrlReservationOnWindows("http://+:" + _options.Get("webInterfacePort", 8080) + "/" + _options.Get("webVirtualDirectoryPath", "/bigdatapipeline").Trim ('/') + '/');
+            }
+
             BigDataPipeline.Web.WebServer.Start (_options.Get<int> ("webInterfacePort", 8080), siteRootPath, _options.Get ("webVirtualDirectoryPath", "/bigdatapipeline"), _options.Get ("webOpenFirewallExceptions", false));
             if (Environment.UserInteractive && _options.Get<bool> ("webInterfaceDisplayOnBrowserOnStart", false))
             {

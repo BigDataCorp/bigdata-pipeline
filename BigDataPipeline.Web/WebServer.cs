@@ -112,7 +112,9 @@ namespace BigDataPipeline.Web
             {                
                 NLog.LogManager.GetCurrentClassLogger ().Error (ex);
                 if (ex.InnerException != null && ex.InnerException.Message == "Access is denied")
-                    NLog.LogManager.GetCurrentClassLogger ().Warn ("Denied access to listen to address " + url + " . Use netsh to add user access permission.");
+                { 
+                    NLog.LogManager.GetCurrentClassLogger().Warn("Denied access to listen to address " + url + " . Use netsh to add user access permission. Example: netsh http add urlacl url=http://+:80/pipeline/ user=Everyone");
+                }
                 Stop ();
             }
             return host != null;
@@ -124,6 +126,17 @@ namespace BigDataPipeline.Web
             {
                 System.Diagnostics.Process.Start ("netsh", "advfirewall firewall add rule name=\"BigDataPipeline port\" dir=in action=allow protocol=TCP localport=" + port).WaitForExit ();
                 System.Diagnostics.Process.Start ("netsh", "advfirewall firewall add rule name=\"BigDataPipeline port\" dir=out action=allow protocol=TCP localport=" + port).WaitForExit ();
+            }
+            catch
+            {
+            }
+        }
+
+        public static void AddUrlReservationOnWindows(string url)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start("netsh", "http add urlacl url=" + url + " user=Everyone").WaitForExit();
             }
             catch
             {

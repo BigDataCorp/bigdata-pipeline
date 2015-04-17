@@ -195,4 +195,11 @@ Default value: `false`
 If enabled, will try to open the browser with the web interface start page.
 
 
+### addUrlReservation
+`addUrlReservation=<boolean>`
+
+Default value: `false`
+
+If this flag is set, before web server initialization, we will try to add the url reservation on the OS. Userful if the application will not ran under admin/root permissions.
+Note that to execute this url reservation the application must be executed with admin/root permissions this one time.
 
