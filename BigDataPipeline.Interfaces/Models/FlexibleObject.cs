@@ -110,6 +110,11 @@ namespace BigDataPipeline
                             return (T)(object)dt;
                         return Newtonsoft.Json.JsonConvert.DeserializeObject<T> (v);
                     }
+                    // let's deal with enums
+                    else if (desiredType.IsEnum)
+                    {
+                        return (T)Enum.Parse (desiredType, v, true);
+                    }
                     // all primitive types are IConvertible, 
                     // and if the type implements this interface lets use it!
                     else if (typeof (IConvertible).IsAssignableFrom (desiredType))
@@ -118,12 +123,7 @@ namespace BigDataPipeline
                             v = v.Substring (1, v.Length - 2);
                         // type convertion with InvariantCulture (faster)
                         return (T)Convert.ChangeType (v, desiredType, System.Globalization.CultureInfo.InvariantCulture);
-                    }
-                    // let's deal with enums
-                    else if (desiredType.IsEnum)
-                    {
-                        return (T)Enum.Parse (desiredType, v, true);
-                    }
+                    }                    
                     // Guid doesn't implement IConvertible
                     else if (desiredType == typeof (Guid) || desiredType == typeof (Guid?))
                     {
