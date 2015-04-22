@@ -96,13 +96,12 @@ namespace BigDataPipeline.Core
             // load current assemblies code to register their types and avoid duplicity
             foreach (var a in AppDomain.CurrentDomain.GetAssemblies ())
             {
-                if (!a.GlobalAssemblyCache && !a.IsDynamic && !loadedAssemblies.ContainsKey (a.FullName))
+                if (!a.IsDynamic && !loadedAssemblies.ContainsKey (a.FullName))
                 {
                     loadedAssemblies[a.FullName] = a;
-                    if (!blackListedAssemblies.Contains (ParseAssemblyName (a.FullName)))
+                    if (!a.GlobalAssemblyCache && !blackListedAssemblies.Contains (ParseAssemblyName (a.FullName)))
                         validAssemblies.Add (a);
                 }
-
             }
 
             HashSet<string> parsedAssemblies = new HashSet<string> (StringComparer.OrdinalIgnoreCase);
@@ -299,8 +298,7 @@ namespace BigDataPipeline.Core
 
         private static string ParseAssemblyName (string name)
         {
-            int i = name.IndexOf (',');
-            return (i > 0) ? name.Substring (0, i) : name;
+            return new AssemblyName (name).Name;
         }
 
         private static string ParseFirstNamespace (string name)
