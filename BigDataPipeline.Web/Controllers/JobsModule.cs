@@ -63,7 +63,7 @@ namespace BigDataPipeline.Web.site.Controllers
                             job.LastExecution = currentJob.LastExecution;
 
                         // recalculate stale next execution
-                        if (job.NextExecution < DateTime.UtcNow.Subtract (PipelineJob.SchedulerLowThreshold))
+                        if (job.NextExecution < DateTime.UtcNow.Subtract (PipelineJob.SchedulerLowThreshold) && job.Scheduler != null && job.Scheduler.Any (i => !String.IsNullOrWhiteSpace(i)))
                         {
                             if (currentJob != null && job.NextExecution < currentJob.NextExecution)                                
                                 job.NextExecution = currentJob.NextExecution;

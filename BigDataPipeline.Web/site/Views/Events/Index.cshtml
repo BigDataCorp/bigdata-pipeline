@@ -179,8 +179,8 @@
             };
 
             $scope.getSimpleEventDetails = function (item) {
-                var itemDetails = '<ul><li>Date: {0}</li><li>Job Id: {1}</li><li>Job Name: {2}</li><li>Module: {3}</li><li>Level: {4}</li><li>Message:</li></ul><div class="well word-break-word">{5}</div>';
-                return itemDetails.replace('{0}', item.Date).replace('{1}', item.JobId).replace('{2}', item.Job).replace('{3}', item.Module).replace('{4}', item.Level).replace('{5}', item.Message);
+                var itemDetails = '<ul><li>Date: {0}</li><li>Job Id: {1}</li><li>Job Name: {2}</li><li>Module: {3}</li><li>Level: {4}</li><li>Message:</li></ul><div class="well word-break-word">{5}<br/>{6}</div>';
+                return itemDetails.replace('{0}', item.Date).replace('{1}', item.JobId).replace('{2}', item.Job).replace('{3}', item.Module).replace('{4}', item.Level).replace('{5}', item.Message).replace('{6}', item.Exception || "");
             };
 
             //**
@@ -198,7 +198,7 @@
                             makeLongTextBreakable(i.Job),
                             makeLongTextBreakable(i.Module),
                             i.Level,
-                            makeLongTextBreakable(cropLongText(i.Message, 200))
+                            makeLongTextBreakable(cropLongText(i.Message + (!!i.Exception ? (": " +  i.Exception) : ""), 200))
                         ];
                     },
                     onRowSelection: function (data, rowId) {
