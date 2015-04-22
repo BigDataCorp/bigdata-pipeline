@@ -35,7 +35,7 @@ namespace BigDataPipeline.Interfaces
         /// ftpes://[login:password@][server][:port]/[path]/[file name or wildcard expression]
         /// sftp://[login:password@][server][:port]/[path]/[file name or wildcard expression]
         /// s3://[login:password@][region endpoint]/[bucketname]/[path]/[file name or wildcard expression]
-        /// s3://[login:password@][s3-us-west-1.amazonaws.com]/[bucketname]/[path]/[file name or wildcard expression]
+        /// s3://[login:password@][s3-us-east-1.amazonaws.com]/[bucketname]/[path]/[file name or wildcard expression]
         /// http://[server][:port]/[path]/[file name or wildcard expression]
         /// https://[server][:port]/[path]/[file name or wildcard expression]
         /// c:/[path]/[file name or wildcard expression]

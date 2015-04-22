@@ -100,7 +100,8 @@ namespace BigDataPipeline.Core
             EventExecutionPipeline.Instance.Initialize (_storage);
 
             // set maximum lock duration for a pipeline job execution
-            SimpleHelpers.MemoryCache<PipelineExecutionLock>.Expiration = TimeSpan.FromMinutes (60);
+            SimpleHelpers.MemoryCache<PipelineExecutionLock>.Expiration = TimeSpan.FromHours (6);
+            SimpleHelpers.MemoryCache<PipelineExecutionLock>.MaintenanceStep = TimeSpan.FromMinutes (5);
 
             // continue with some async initialization
             Task.Run (() => PrepareSystemModules ());

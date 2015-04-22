@@ -362,7 +362,13 @@ namespace BigDataPipeline.Core
                     context.SetInputStream (previousActionContext.GetEmitedItems ());
 
                 // execute
+                if (jobLogger.GetLogLevel () == 0)
+                    jobLogger.Trace ("Starting module execution");
+
                 result = module.Execute (context);
+
+                if (jobLogger.GetLogLevel () == 0)
+                    jobLogger.Trace ("Ending module execution");
                 
                 // check result
                 if (!result)
