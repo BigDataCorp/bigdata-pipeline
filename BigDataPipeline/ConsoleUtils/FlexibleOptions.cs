@@ -8,6 +8,7 @@ namespace BigDataPipeline
 {
     public class FlexibleOptions
     {
+        private bool _caseInsensitive = true;
         private Dictionary<string, string> _options;
 
         /// <summary>
@@ -25,9 +26,49 @@ namespace BigDataPipeline
         }
 
         /// <summary>
-        /// Check if a key exists
+        /// Initializes a new instance of the <see cref="FlexibleOptions" /> class.
         /// </summary>
-        /// <param name="key"></param>
+        public FlexibleOptions ()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FlexibleOptions" /> class.
+        /// </summary>
+        /// <param name="caseInsensitive">If the intenal dictionary should have case insensitive keys.</param>
+        public FlexibleOptions (bool caseInsensitive)
+        {
+            ChangeStringComparer (caseInsensitive);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FlexibleOptions" /> class.
+        /// </summary>
+        /// <param name="instance">Another FlexibleObject instance to be cloned.</param>
+        /// <param name="caseInsensitive">If the intenal dictionary should have case insensitive keys.</param>
+        public FlexibleOptions (FlexibleOptions instance, bool caseInsensitive)
+        {
+            _caseInsensitive = caseInsensitive;
+            _options = new Dictionary<string, string> (instance.Options, _caseInsensitive ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        }
+ 
+        private void ChangeStringComparer (bool caseInsensitive)
+        {
+            if (_caseInsensitive != caseInsensitive)
+            {
+                _caseInsensitive = caseInsensitive;
+                if (_options != null)
+                {
+                    // rebuild internal data structure
+                    _options = new Dictionary<string, string> (_options, _caseInsensitive ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Check if a key exists.
+        /// </summary>
+        /// <param name="key">The associated key, which is case sensitive.</param>
         /// <returns></returns>
         public bool HasOption (string key)
         {
@@ -35,26 +76,35 @@ namespace BigDataPipeline
         }
 
         /// <summary>
-        /// Add/Overwrite and option. The value will be serialized to string.
+        /// Add/Overwrite and option. The value will be converted or serialized to string.
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="key"></param>
-        /// <param name="value"></param>
-        /// <returns></returns>
+        /// <param name="key">The associated key, which is case insensitive.</param>
+        /// <param name="value">The data to be stored.</param>
+        /// <returns>This instance</returns>
         public FlexibleOptions Set<T> (string key, T value)
         {
             if (key != null)
             {
-                bool isNull = (value as object == null);
-                if (typeof (T) == typeof (string) && !isNull)
+                var desiredType = typeof (T);
+                // lets check for null value
+                if (value as object == null)
+                {
+                    Options[key] = null;
+                }
+                // we store data as string, so lets test if we have a string
+                else if (desiredType == typeof (string))
                 {
                     Options[key] = (string)(object)value;
                 }
-                else if (typeof (T).IsPrimitive)
+                // all primitive types are IConvertible, 
+                // and if the type implements this interface lets use it (should be faster than serialization)!
+                else if (typeof (IConvertible).IsAssignableFrom (desiredType))
                 {
                     Options[key] = (string)Convert.ChangeType (value, typeof (string), System.Globalization.CultureInfo.InvariantCulture);
                 }
-                else if (!isNull)
+                // finally we fallback to json serialization
+                else
                 {
                     Options[key] = Newtonsoft.Json.JsonConvert.SerializeObject (value);
                 }
@@ -63,25 +113,52 @@ namespace BigDataPipeline
         }
 
         /// <summary>
-        /// Get the option as string. If the key doen't exist, an Empty string is returned.
+        /// Get the option as string. If the key doen't exist, String.Empty is returned.
         /// </summary>
-        /// <param name="key"></param>
-        /// <returns></returns>
+        /// <param name="key">The key, which is case sensitive.</param>
+        /// <remarks>
+        /// Since data is stored internally as string, the data will be returned directly.
+        /// If the desired type is String, a conversion will only happen if the string has quotation marks, in which case json deserialization will take place.
+        /// </remarks>
+        /// <returns>The data as string or String.Empty.</returns>
         public string Get (string key)
         {
             return Get<string> (key, String.Empty);
         }
 
         /// <summary>
-        /// Get the option as the desired type.
-        /// If the key doen't exist or the type convertion fails, the provided defaultValue is returned.
+        /// Get the option as the desired type.<para/>
+        /// If the key doen't exist or the type convertion fails, the provided defaultValue is returned.<para/>
         /// The type convertion uses the Json.Net serialization to try to convert.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="key"></param>
-        /// <param name="defaultValue"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">The desired type to return the data.</typeparam>
+        /// <param name="key">The key, which is case sensitive.</param>
+        /// <param name="defaultValue">The default value to be used if the data doesn't exists or the type conversion fails.</param>
+        /// <remarks>
+        /// Since data is stored internally as string, the data will be returned directly.
+        /// If the desired type is String, a conversion will only happen if the string has quotation marks, in which case json deserialization will take place.
+        /// </remarks>
+        /// <returns>The data converted to the desired type or the provided defaultValue.</returns>
         public T Get<T> (string key, T defaultValue)
+        {
+            return Get<T> (key, defaultValue, false);
+        }
+
+        /// <summary>
+        /// Get the option as the desired type.<para/>
+        /// If the key doen't exist or the type convertion fails, the provided defaultValue is returned.<para/>
+        /// The type convertion uses the Json.Net serialization to try to convert.
+        /// </summary>
+        /// <typeparam name="T">The desired type to return the data.</typeparam>
+        /// <param name="key">The key, which is case sensitive.</param>
+        /// <param name="defaultValue">The default value to be used if the data doesn't exists or the type conversion fails.</param>
+        /// <param name="preserveQuotes">The preserve quotes in case of string.</param>
+        /// <remarks>
+        /// Since data is stored internally as string, the data will be returned directly.
+        /// If the desired type is String, a conversion will only happen if the string has quotation marks, in which case json deserialization will take place.
+        /// </remarks>
+        /// <returns>The data converted to the desired type or the provided defaultValue.</returns>
+        public T Get<T> (string key, T defaultValue, bool preserveQuotes)
         {
             string v;
             if (key != null && Options.TryGetValue (key, out v))
@@ -96,18 +173,13 @@ namespace BigDataPipeline
 
                     if (desiredType == typeof (string))
                     {
-                        if (missingQuotes)
+                        if (missingQuotes || preserveQuotes)
                             return (T)(object)v;
+                        // let's deserialize to also unscape the string
                         return Newtonsoft.Json.JsonConvert.DeserializeObject<T> (v);
                     }
-                    // else, use a type convertion with InvariantCulture (faster)
-                    else if (desiredType.IsPrimitive)
-                    {
-                        if (!missingQuotes)
-                            v = v.Substring (1, v.Length - 2);
-                        return (T)Convert.ChangeType (v, typeof (T), System.Globalization.CultureInfo.InvariantCulture);
-                    }
                     // more comprehensive datetime parser, except formats like "\"\\/Date(1335205592410-0500)\\/\""
+                    // DateTime is tested prior to IConvertible, since it also implements IConvertible
                     else if (desiredType == typeof (DateTime) || desiredType == typeof (DateTime?))
                     {
                         DateTime dt;
@@ -116,18 +188,34 @@ namespace BigDataPipeline
                             return (T)(object)dt;
                         if (vDt.Length == 8 && DateTime.TryParseExact (vDt, "yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out dt))
                             return (T)(object)dt;
-                        return Newtonsoft.Json.JsonConvert.DeserializeObject<T> (v);
+                        // if previous convertion attempts didn't work, fallback to json deserialization
                     }
+                    // let's deal with enums
+                    else if (desiredType.IsEnum)
+                    {
+                        return (T)Enum.Parse (desiredType, v, true);
+                    }
+                    // all primitive types are IConvertible, 
+                    // and if the type implements this interface lets use it!
+                    else if (typeof (IConvertible).IsAssignableFrom (desiredType))
+                    {
+                        if (!missingQuotes)
+                            v = v.Substring (1, v.Length - 2);
+                        // type convertion with InvariantCulture (faster)
+                        return (T)Convert.ChangeType (v, desiredType, System.Globalization.CultureInfo.InvariantCulture);
+                    }
+                    // Guid doesn't implement IConvertible
                     else if (desiredType == typeof (Guid) || desiredType == typeof (Guid?))
                     {
                         Guid guid;
                         if (Guid.TryParse (v, out guid))
                             return (T)(object)guid;
                     }
+                    // TimeSpan doesn't implement IConvertible
                     else if (desiredType == typeof (TimeSpan) || desiredType == typeof (TimeSpan?))
                     {
                         TimeSpan timespan;
-                        if (TimeSpan.TryParse (Convert.ToString (v), out timespan))
+                        if (TimeSpan.TryParse (v, out timespan))
                             return (T)(object)timespan;
                     }
 
@@ -140,7 +228,7 @@ namespace BigDataPipeline
         }
 
         /// <summary>
-        /// Merge together FlexibleObjects, the last object in the list has priority in conflict resolution (overwrite).
+        /// Merge together FlexibleOptions instances, the last object in the list has priority in conflict resolution (overwrite).
         /// </summary>
         /// <param name="items"></param>
         /// <returns></returns>
