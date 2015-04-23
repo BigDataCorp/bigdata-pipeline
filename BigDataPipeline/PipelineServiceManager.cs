@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using NLog;
 using BigDataPipeline.Core;
+using BigDataPipeline.Interfaces;
 
 namespace BigDataPipeline
 {

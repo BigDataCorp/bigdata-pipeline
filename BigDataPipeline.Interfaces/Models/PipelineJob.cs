@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace BigDataPipeline
+namespace BigDataPipeline.Interfaces
 {
     public enum SchedullerStatus { None, ShouldExecute, Reschedulled }
     

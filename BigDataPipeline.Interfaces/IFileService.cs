@@ -9,7 +9,7 @@ namespace BigDataPipeline.Interfaces
 
     public interface IFileService
     {
-        IFileTransfer Open (string connectionUri, BigDataPipeline.FlexibleObject extraOptions = null);
+        IFileTransfer Open (string connectionUri, FlexibleObject extraOptions = null);
     }
 
     public class StreamTransferInfo
@@ -57,7 +57,7 @@ namespace BigDataPipeline.Interfaces
     /// file:///c:/[path]
     /// 
     /// </summary>
-    public class FileServiceConnectionInfo : BigDataPipeline.FlexibleObject
+    public class FileServiceConnectionInfo : FlexibleObject
     {
         public const int DefaultReadBufferSize = 2 * 1024 * 1024;
         public const int DefaultWriteBufferSize = 512 * 1024;
