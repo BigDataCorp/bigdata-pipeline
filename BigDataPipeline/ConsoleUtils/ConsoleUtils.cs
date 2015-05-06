@@ -55,9 +55,7 @@ namespace BigDataPipeline
             // more concurrent connections to the same IP (avoid throttling) and other tuning
             // http://blogs.msdn.com/b/jpsanders/archive/2009/05/20/understanding-maxservicepointidletime-and-defaultconnectionlimit.aspx
             System.Net.ServicePointManager.DefaultConnectionLimit = 1024; // more concurrent connections to the same IP (avoid throttling)
-            System.Net.ServicePointManager.MaxServicePointIdleTime = 30 * 1000; // release unused connections sooner (20 seconds)
-            // since mono blocks all non intalled SSL root certificate, lets disable it!
-            System.Net.ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
+            System.Net.ServicePointManager.MaxServicePointIdleTime = 30 * 1000; // release unused connections sooner (30 seconds)
         }
 
         static string _logFileName;
@@ -72,7 +70,7 @@ namespace BigDataPipeline
             if (String.IsNullOrEmpty (logFileName))
                 logFileName = System.Configuration.ConfigurationManager.AppSettings["logFilename"] ?? ("${basedir}/log/" + typeof (Program).Namespace + ".log");
             if (String.IsNullOrEmpty (logLevel))
-                logLevel = System.Configuration.ConfigurationManager.AppSettings["logLevel"] = "Info";
+                logLevel = System.Configuration.ConfigurationManager.AppSettings["logLevel"] ?? "Info";
 
             // check if log was initialized with same options
             if (_logFileName == logFileName && _logLevel == logLevel) 
@@ -116,10 +114,7 @@ namespace BigDataPipeline
             fileTarget.ArchiveNumbering = NLog.Targets.ArchiveNumberingMode.Date;
             fileTarget.ArchiveDateFormat = "yyyyMMdd_HHmmss";
 
-            // set file output to be async
-            var wrapper = new NLog.Targets.Wrappers.AsyncTargetWrapper (fileTarget);
-
-            config.AddTarget ("file", wrapper);
+            config.AddTarget ("file", fileTarget);
 
             // configure log from configuration file            
             fileTarget.FileName = logFileName;
@@ -283,30 +278,24 @@ namespace BigDataPipeline
 
         private static FlexibleOptions LoadWebConfigurationFile (string filePath, bool thrownOnError)
         {
-            var options = new FlexibleOptions ();
             using (WebClient client = new WebClient ())
             {
                 try
                 {
-                    var json = Newtonsoft.Json.Linq.JObject.Parse (client.DownloadString (filePath));
-                    foreach (var i in json)
-                    {
-                        options.Set (i.Key, i.Value.ToString (Newtonsoft.Json.Formatting.None));
-                    }
+                    return parseFile (client.DownloadString (filePath));
                 }
                 catch (Exception ex)
                 {
                     if (thrownOnError)
                         throw;
                     LogManager.GetCurrentClassLogger ().Error (ex);
+                    return new FlexibleOptions ();
                 }
-            }
-            return options;
+            }            
         }
 
         private static FlexibleOptions LoadFileSystemConfigurationFile (string filePath, bool thrownOnError)
         {
-            var options = new FlexibleOptions ();
             using (WebClient client = new WebClient ())
             {
                 try
@@ -316,19 +305,44 @@ namespace BigDataPipeline
                     {
                         text = file.ReadToEnd ();
                     }
-                    var json = Newtonsoft.Json.Linq.JObject.Parse (text);
-                    foreach (var i in json)
-                    {
-                        options.Set (i.Key, i.Value.ToString (Newtonsoft.Json.Formatting.None));
-                    }
+                    return parseFile (client.DownloadString (filePath));                    
                 }
                 catch (Exception ex)
                 {
                     if (thrownOnError)
                         throw;
                     LogManager.GetCurrentClassLogger ().Error (ex);
+                    return new FlexibleOptions ();
                 }
             }
+        }
+
+        private static FlexibleOptions parseFile (string content)
+        {
+            var options = new FlexibleOptions ();
+
+            // detect xml
+            if (content.TrimStart().StartsWith ("<"))
+            {
+                var xmlDoc = System.Xml.Linq.XDocument.Parse (content);
+                var root = xmlDoc.Descendants ("config").FirstOrDefault ();
+                if (root != null && root.HasElements)
+                {
+                    foreach (var i in root.Elements ())
+                    {
+                        options.Set (i.Name.ToString (), i.Value);
+                    }
+                }
+            }
+            else
+            {
+                var json = Newtonsoft.Json.Linq.JObject.Parse (content);
+                foreach (var i in json)
+                {
+                    options.Set (i.Key, i.Value.ToString (Newtonsoft.Json.Formatting.None));
+                }
+            }
+
             return options;
         }
 
