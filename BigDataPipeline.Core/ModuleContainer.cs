@@ -66,7 +66,7 @@ namespace BigDataPipeline.Core
         /// scan for the types derived from listOfInterfaces.
         /// </summary>
         /// <param name="modulesFolder">The modules folder.</param>
-        /// <param name="listOfInterfaces">The list of interfaces or base types.</param>
+        /// <param name="listOfInterfaces">The list of interfaces or base types.</param> 
         public void LoadModules (string modulesFolder, Type[] listOfInterfaces = null)
         {
             lock (padlock)
@@ -236,6 +236,10 @@ namespace BigDataPipeline.Core
                     {
                         _logger.Warn (ex);
                     }
+
+                    // check if types were listed!
+                    if (types == null)
+                        continue;
 
                     // search for types derived from desired types list (listOfInterfaces)
                     for (int i = 0; i < types.Length; i++)
