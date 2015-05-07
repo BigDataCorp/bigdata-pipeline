@@ -272,13 +272,12 @@ namespace BigDataPipeline.Interfaces
 
     public class FileTransferHelpers
     {
-        public static string WildcardToRegex (string pattern)
+        public static string WildcardToRegex (string pattern, bool anchorOnStart = false)
         {
             if (pattern == null)
                 return String.Empty;
-            return "^" + System.Text.RegularExpressions.Regex.Escape (pattern).
-                               Replace (@"\*", ".*").
-                               Replace (@"\?", ".") + "$";
+            pattern = System.Text.RegularExpressions.Regex.Escape (pattern).Replace (@"\*", ".*").Replace (@"\?", ".");
+            return (anchorOnStart ? "^" : "") + pattern +  "$";
         }
 
         public static bool HasWildcard (string pattern)
