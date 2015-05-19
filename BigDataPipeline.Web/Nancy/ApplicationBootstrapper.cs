@@ -87,15 +87,16 @@ namespace BigDataPipeline.Web
 
         protected override void ApplicationStartup (Nancy.TinyIoc.TinyIoCContainer container, Nancy.Bootstrapper.IPipelines pipelines)
         {
+            // configure nancy
             Nancy.Diagnostics.DiagnosticsHook.Disable (pipelines);
             StaticConfiguration.CaseSensitive = false;
-            StaticConfiguration.DisableErrorTraces = false;
-            StaticConfiguration.EnableRequestTracing = true;
-            Nancy.Json.JsonSettings.MaxJsonLength = 10 * 1024 * 1024;
-
-#if DEBUG
             StaticConfiguration.DisableErrorTraces = true;
             StaticConfiguration.EnableRequestTracing = false;
+            Nancy.Json.JsonSettings.MaxJsonLength = 20 * 1024 * 1024;
+
+#if DEBUG
+            StaticConfiguration.DisableErrorTraces = false;
+            StaticConfiguration.EnableRequestTracing = true;
 #endif
             // log any errors
             pipelines.OnError.AddItemToStartOfPipeline ((ctx, ex) =>
@@ -114,8 +115,6 @@ namespace BigDataPipeline.Web
                     ctx.Response.WithHeader ("Access-Control-Allow-Origin", "*")
                         .WithHeader ("Access-Control-Allow-Methods", "POST,GET")
                         .WithHeader ("Access-Control-Allow-Headers", "Accept, Origin, Content-type");
-                    // to improve thethrouput, lets signal the client to close and reopen the connection per request
-                    ctx.Response.Headers["Connection"] = "close";
                 }
             });
 
@@ -145,7 +144,7 @@ namespace BigDataPipeline.Web
                 FormsAuthentication.Enable (pipelines, formsAuthConfiguration);
             }
 
-            // Squishit
+            // Enable Squishit to bundle our javascript and css resources
             SquishIt.Framework.Bundle.ConfigureDefaults ().UsePathTranslator (container.Resolve<SquishIt.Framework.IPathTranslator> ());
 
             base.ApplicationStartup (container, pipelines);
@@ -167,18 +166,39 @@ namespace BigDataPipeline.Web
         }
 
         /// <summary>
+        /// Lets adjust default container settings.
+        /// Add this converter to the default settings of Newtonsoft JSON.NET.
+        /// </summary>            
+        protected override void ConfigureApplicationContainer (Nancy.TinyIoc.TinyIoCContainer container)
+        {
+            //base.ConfigureApplicationContainer (container);
+
+            // substitute nancy default assembly registration to a faster selected loading... (5x faster loading...)
+            var nancyEngineAssembly = typeof (NancyEngine).Assembly;
+            HashSet<string> blackListedAssemblies = new HashSet<string> (StringComparer.OrdinalIgnoreCase) { "mscorlib", "vshost", "BigDataPipeline", "NLog", "Newtonsoft.Json", "Topshelf", "Topshelf.Linux", "Topshelf.NLog", "AWSSDK", "Dapper", "Mono.CSharp", "Mono.Security", "NCrontab", "Renci.SshNet", "System.Net.FtpClient", "MongoDB.Bson", "MongoDB.Driver", "System.Data.SQLite", "System.Net.Http.Formatting", "System.Web.Razor", "Microsoft.Owin.Hosting", "Microsoft.Owin", "Owin" };
+            container.AutoRegister (AppDomain.CurrentDomain.GetAssemblies ().Where (a => !a.GlobalAssemblyCache && !a.IsDynamic && !blackListedAssemblies.Contains (ParseAssemblyName (a.FullName))), Nancy.TinyIoc.DuplicateImplementationActions.RegisterMultiple, t => t.Assembly != nancyEngineAssembly);
+
+            // register json.net default options
+            container.Register<JsonSerializer, CustomJsonSerializer> ();
+
+            //BigDataPipeline.Core.ModuleContainer.Instance.GetTypesOf<NancyModule> ();
+        }
+
+        /// <summary>
         /// Allow anonymous access only to the login page... 
         /// All other modules access must be authentication:
         /// 1 - forms authentication
         /// 2 - token authentication in the Header["Authorization"]
         /// 3 - token authentication in the request parameters: <request path>/?token=<token value>
+        /// 4 - login and password authentication in the request parameters: <request path>/?login=<login>&password=<password>
         /// </summary>        
         private Response AllResourcesAuthentication (NancyContext ctx)
         {
             // if authenticated, go on...
             if (ctx.CurrentUser != null)
                 return null;
-            // if login module, go on...
+            
+            // if login module, go on... (here we can put other routes without authentication)
             if (ctx.Request.Url.Path.IndexOf ("/login", StringComparison.OrdinalIgnoreCase) >= 0)
                 return null;
 
@@ -201,11 +221,16 @@ namespace BigDataPipeline.Web
             // finally, check if login and password were passed as parameters
             if (ctx.CurrentUser == null)
             {
-                authToken = TryGetRequestParameter (ctx, "password");
-                if (!String.IsNullOrEmpty (authToken))
+                var password = TryGetRequestParameter (ctx, "password");                
+                if (!String.IsNullOrEmpty (password))
                 {
-                    authToken = accessControlContext.OpenSession (TryGetRequestParameter (ctx, "login"), authToken, TimeSpan.FromMinutes (10));
-                    ctx.CurrentUser = accessControlContext.GetUserFromIdentifier (authToken, ctx);
+                    var login = TryGetRequestParameter (ctx, "login");
+                    if (String.IsNullOrEmpty (login))
+                        login = TryGetRequestParameter (ctx, "username");
+                    if (!String.IsNullOrEmpty (login))
+                        authToken = accessControlContext.OpenSession (login, password, TimeSpan.FromMinutes (30));
+                    if (!String.IsNullOrEmpty (authToken))
+                        ctx.CurrentUser = accessControlContext.GetUserFromIdentifier (authToken, ctx);
                 }
             }
 
@@ -213,37 +238,30 @@ namespace BigDataPipeline.Web
             return (ctx.CurrentUser == null) ? new Nancy.Responses.HtmlResponse (HttpStatusCode.Unauthorized) : null;
         }
 
-        static string TryGetRequestParameter (NancyContext ctx, string parameter)
-        {
-            object p;
-            if ((ctx.Request.Query as DynamicDictionary).TryGetValue (parameter, out p) && p != null)
-            {
-                return p.ToString ();
-            }
-
-            if ((ctx.Request.Form as DynamicDictionary).TryGetValue (parameter, out p) && p != null)
-            {
-                return p.ToString ();
-            }
-
-            return null;
-        }
-
         /// ***********************
         /// Custom Path provider
         /// ***********************
         public class PathProvider : IRootPathProvider
         {
-            static string _path = AppDomain.CurrentDomain.BaseDirectory;//System.IO.Path.Combine (AppDomain.CurrentDomain.BaseDirectory, @"site");//
+            static string _path = SetRootPath (AppDomain.CurrentDomain.BaseDirectory);//System.IO.Path.Combine (AppDomain.CurrentDomain.BaseDirectory, @"site");//
 
             public string GetRootPath ()
             {
                 return _path;
             }
 
-            public static void SetRootPath (string fullPath)
+            public static string SetRootPath (string fullPath)
             {
+                fullPath = fullPath.Replace ('\\', '/');
+                if (fullPath.Length == 0 || fullPath[fullPath.Length - 1] != '/')
+                    fullPath += '/';
+                if (fullPath.EndsWith ("/bin/", StringComparison.OrdinalIgnoreCase))
+                {
+                    var p = fullPath.LastIndexOf ("/bin/", StringComparison.OrdinalIgnoreCase);
+                    fullPath = fullPath.Substring (0, p + 1);
+                }
                 _path = fullPath;
+                return _path;
             }
         }
 
@@ -251,6 +269,8 @@ namespace BigDataPipeline.Web
         {
             get { return new PathProvider (); }
         }
+
+        #region *   JSON serialization options  *
 
         /// ***********************
         /// Custom Json net options
@@ -264,24 +284,12 @@ namespace BigDataPipeline.Web
                 MissingMemberHandling = MissingMemberHandling.Ignore;
                 NullValueHandling = NullValueHandling.Ignore;
                 ObjectCreationHandling = ObjectCreationHandling.Replace;
+
+                // note: this converter is added to the default settings of Newtonsoft JSON.NET in ConfigureApplicationContainer method
             }
         }
 
-        // Add this converter to the default settings of Newtonsoft JSON.NET.            
-        protected override void ConfigureApplicationContainer (Nancy.TinyIoc.TinyIoCContainer container)
-        {
-            //base.ConfigureApplicationContainer (container);
-
-            // substitute nancy default assembly registration to a faster selected loading... (5x faster loading...)
-            var nancyEngineAssembly = typeof (NancyEngine).Assembly;            
-            HashSet<string> blackListedAssemblies = new HashSet<string> (StringComparer.OrdinalIgnoreCase) { "mscorlib", "vshost", "BigDataPipeline", "NLog", "Newtonsoft.Json", "Topshelf", "Topshelf.Linux", "Topshelf.NLog", "AWSSDK", "Dapper", "Mono.CSharp", "Mono.Security", "NCrontab", "Renci.SshNet", "System.Net.FtpClient", "MongoDB.Bson", "MongoDB.Driver", "System.Data.SQLite", "System.Net.Http.Formatting", "System.Web.Razor", "Microsoft.Owin.Hosting", "Microsoft.Owin", "Owin" };
-            container.AutoRegister (AppDomain.CurrentDomain.GetAssemblies ().Where (a => !a.GlobalAssemblyCache && !a.IsDynamic && !blackListedAssemblies.Contains (ParseAssemblyName (a.FullName))), Nancy.TinyIoc.DuplicateImplementationActions.RegisterMultiple, t => t.Assembly != nancyEngineAssembly);
-
-            // register json.net default options
-            container.Register<JsonSerializer, CustomJsonSerializer> ();
-
-            //BigDataPipeline.Core.ModuleContainer.Instance.GetTypesOf<NancyModule> ();
-        }
+        #endregion
 
         #region *   Helper methods  *
         /// ***********************
@@ -292,7 +300,7 @@ namespace BigDataPipeline.Web
             int i = name.IndexOf (',');
             return (i > 0) ? name.Substring (0, i) : name;
         }
-
+        
         static string GetLastPathPart (string path)
         {
             // reduce length to disregard ending '\\' or '/'
@@ -310,6 +318,28 @@ namespace BigDataPipeline.Web
         static string PrepareFilePath (string path)
         {
             return (path ?? "").Replace ('\\', '/').Replace ("//", "/").Trim ('/');
+        }
+
+        static string TryGetRequestParameter (NancyContext ctx, string parameter)
+        {
+            object p;
+            if (((DynamicDictionary)ctx.Request.Query).TryGetValue (parameter, out p) && p != null)
+            {
+                return p.ToString ();
+            }
+
+            if (((DynamicDictionary)ctx.Request.Form).TryGetValue (parameter, out p) && p != null)
+            {
+                return p.ToString ();
+            }
+
+            if (ctx.Parameters != null && ctx.Parameters is DynamicDictionary &&
+                ((DynamicDictionary)ctx.Parameters).TryGetValue (parameter, out p) && p != null)
+            {
+                return p.ToString ();
+            }
+
+            return null;
         }
 
         #endregion
