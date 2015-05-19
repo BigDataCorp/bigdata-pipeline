@@ -1,3 +1,35 @@
+#region *   License     *
+/*
+    SimpleHelpers - ConsoleUtils   
+
+    Copyright © 2015 Khalid Salomão
+
+    Permission is hereby granted, free of charge, to any person
+    obtaining a copy of this software and associated documentation
+    files (the “Software”), to deal in the Software without
+    restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following
+    conditions:
+
+    The above copyright notice and this permission notice shall be
+    included in all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+    OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+    HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+    OTHER DEALINGS IN THE SOFTWARE. 
+
+    License: http://www.opensource.org/licenses/mit-license.php
+    Website: https://github.com/khalidsalomao/SimpleHelpers.Net
+ */
+#endregion
+ 
 using NLog;
 using System;
 using System.Collections.Generic;
@@ -24,7 +56,7 @@ namespace BigDataPipeline
 
             ProgramOptions = CheckCommandLineParams (args, thrownOnError);
 
-            if (ProgramOptions.Get<bool> ("help", false))
+            if (ProgramOptions.Get<bool> ("help", false) || ProgramOptions.Get<bool> ("h", false))
             {
                 show_help ("");
                 CloseApplication (0, true);
@@ -34,8 +66,16 @@ namespace BigDataPipeline
             if (!Console.IsOutputRedirected)
             {
                 ConsoleUtils.DisplayHeader (
-                    typeof (Program).Namespace,
+                    typeof(ConsoleUtils).Namespace.Replace(".SimpleHelpers", ""),
                     "options: " + (ProgramOptions == null ? "none" : "\n#    " + String.Join ("\n#    ", ProgramOptions.Options.Select (i => i.Key + "=" + i.Value))));
+            }
+            else
+            {
+                var logger = LogManager.GetCurrentClassLogger ();
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug ("options: " + (ProgramOptions == null ? "none" : "\n#    " + String.Join ("\n#    ", ProgramOptions.Options.Select (i => i.Key + "=" + i.Value))));
+                }
             }
 
             return ProgramOptions;
@@ -55,7 +95,6 @@ namespace BigDataPipeline
             // more concurrent connections to the same IP (avoid throttling) and other tuning
             // http://blogs.msdn.com/b/jpsanders/archive/2009/05/20/understanding-maxservicepointidletime-and-defaultconnectionlimit.aspx
             System.Net.ServicePointManager.DefaultConnectionLimit = 1024; // more concurrent connections to the same IP (avoid throttling)
-            System.Net.ServicePointManager.MaxServicePointIdleTime = 30 * 1000; // release unused connections sooner (30 seconds)
         }
 
         static string _logFileName;
@@ -68,7 +107,9 @@ namespace BigDataPipeline
         {
             // default parameters initialization from config file
             if (String.IsNullOrEmpty (logFileName))
-                logFileName = System.Configuration.ConfigurationManager.AppSettings["logFilename"] ?? ("${basedir}/log/" + typeof (Program).Namespace + ".log");
+                logFileName = System.Configuration.ConfigurationManager.AppSettings["logFilename"];
+			if (String.IsNullOrEmpty (logFileName))
+                logFileName = ("${basedir}/log/" + typeof (ConsoleUtils).Namespace.Replace(".SimpleHelpers", "") + ".log");
             if (String.IsNullOrEmpty (logLevel))
                 logLevel = System.Configuration.ConfigurationManager.AppSettings["logLevel"] ?? "Info";
 
@@ -103,7 +144,7 @@ namespace BigDataPipeline
 
             // file output
             var fileTarget = new NLog.Targets.FileTarget ();
-            fileTarget.FileName = "${basedir}/log/" + typeof (Program).Namespace + ".log";
+            fileTarget.FileName = logFileName;
             fileTarget.Layout = "${longdate}\t${callsite}\t${level}\t\"${message}${onexception: \t [Exception] ${exception:format=tostring}}\"";
             fileTarget.ConcurrentWrites = true;
             fileTarget.AutoFlush = true;
@@ -113,11 +154,12 @@ namespace BigDataPipeline
             fileTarget.MaxArchiveFiles = 10;
             fileTarget.ArchiveNumbering = NLog.Targets.ArchiveNumberingMode.Date;
             fileTarget.ArchiveDateFormat = "yyyyMMdd_HHmmss";
+            // set file output to be async (commented out since doesn't work on mono)
+            // var wrapper = new NLog.Targets.Wrappers.AsyncTargetWrapper (fileTarget);
 
             config.AddTarget ("file", fileTarget);
 
-            // configure log from configuration file            
-            fileTarget.FileName = logFileName;
+            // configure log from configuration file
             var rule2 = new NLog.Config.LoggingRule ("*", currentLogLevel, fileTarget);
             config.LoggingRules.Add (rule2);
 
@@ -129,7 +171,7 @@ namespace BigDataPipeline
         /// Execute some housekeeping and closes the application.
         /// </summary>
         /// <param name="exitCode">The exit code.</param>
-        internal static void CloseApplication (int exitCode, bool exitApplication)
+        public static void CloseApplication (int exitCode, bool exitApplication)
         {
             System.Threading.Thread.Sleep (0);
             // log error code and close log
@@ -161,8 +203,8 @@ namespace BigDataPipeline
             FlexibleOptions mergedOptions = null;
             FlexibleOptions argsOptions = null;
             FlexibleOptions localOptions = new FlexibleOptions ();
-            FlexibleOptions externalLoadedOptions = null;                        
-            
+            FlexibleOptions externalLoadedOptions = null;
+
             try
             {
                 // parse local configuration file
@@ -232,33 +274,34 @@ namespace BigDataPipeline
             if (args != null)
             {
                 string arg;
+                bool openTag = false;
                 string lastTag = null;
                 for (int ix = 0; ix < args.Length; ix++)
                 {
                     arg = args[ix];
-                    // check for option with key=value sintax
+                    // check for option with key=value sintax (restriction: the previous tag must not be an open tag)
                     // also valid for --key:value
+                    bool hasStartingMarker = arg.StartsWith ("-", StringComparison.Ordinal) || arg.StartsWith ("/", StringComparison.Ordinal);
                     int p = arg.IndexOf ('=');
-                    if (p > 0)
+                    if (p > 0 && (hasStartingMarker || !openTag))
                     {
                         argsOptions.Set (arg.Substring (0, p).Trim ().TrimStart ('-', '/'), arg.Substring (p + 1).Trim ());
                         lastTag = null;
-                        continue;
-                    }
-                    
+                        openTag = false;
+                    }                    
                     // search for tag stating with special character
-                    if (arg.StartsWith ("-", StringComparison.Ordinal) || arg.StartsWith ("/", StringComparison.Ordinal))
+                    else if (hasStartingMarker)
                     {
                         lastTag = arg.Trim ().TrimStart ('-', '/');
                         argsOptions.Set (lastTag, "true");
-                        continue;
+                        openTag = true;
                     }
-
                     // set value of last tag
-                    if (lastTag != null)
+                    else if (lastTag != null)
                     {
                         argsOptions.Set (lastTag, arg.Trim ());
-                    }
+                        openTag = false;
+                    }                    
                 }
             }
             return argsOptions;
@@ -348,9 +391,11 @@ namespace BigDataPipeline
 
         private static void show_help (string message, bool isError = false)
         {
-            var files = new string[] { "Help.md", "Configuration.md" };
-            var file = "README.md";
+            // files with help text in order of priority
+            var files = new string[] { "help", "help.txt", "Configuration.md", "README.md" };
             var text = "Help command line arguments";
+            string file = files.FirstOrDefault ();
+            // check which file exists
             foreach (var f in files)
             {
                 if (System.IO.File.Exists (f))
@@ -362,30 +407,46 @@ namespace BigDataPipeline
                     file = ".docs/" + f; break;
                 }
             }
-
+            // try to load help text
             if (System.IO.File.Exists (file))
-                text = System.IO.File.ReadAllText (file);
+                text = ReadFileAllText (file);
 
-            if (message == null) return;
+            // display message parameter
             if (isError)
             {
-                Console.Error.WriteLine (message);
-                Console.Error.WriteLine (text);
+                Console.Error.WriteLine (message);                
             }
             else
             {
                 Console.WriteLine (message);
-                Console.WriteLine (text);
             }
-            CloseApplication (0, true);
+            
+            // display help text
+            Console.Error.WriteLine (text);
+        }
+
+        public static string ReadFileAllText (string filename)
+        {
+            // enable file encoding detection
+            var encoding = SimpleHelpers.FileEncoding.DetectFileEncoding (filename);
+            // Load data based on parameters
+            return System.IO.File.ReadAllText (filename, encoding);
+        }
+
+        public static string[] ReadFileAllLines (string filename)
+        {
+            // enable file encoding detection
+            var encoding = SimpleHelpers.FileEncoding.DetectFileEncoding (filename);
+            // Load data based on parameters
+            return System.IO.File.ReadAllLines (filename, encoding);
         }
 
         public static void DisplayHeader (params string[] messages)
         {
             DisplaySeparator ();
-            
+
             Console.WriteLine ("#  {0}", DateTime.Now.ToString ("yyyy/MM/dd HH:mm:ss"));
-            
+
             if (messages == null)
             {
                 Console.WriteLine ("#  ");

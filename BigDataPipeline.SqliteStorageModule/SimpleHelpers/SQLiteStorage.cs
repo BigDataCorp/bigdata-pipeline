@@ -135,7 +135,8 @@ namespace BigDataPipeline.SqliteStorage.SimpleHelpers.SQLite
             sb.JournalMode = SQLiteJournalModeEnum.Wal;
             sb.SyncMode = SynchronizationModes.Normal;
             sb.DateTimeKind = DateTimeKind.Utc;
-            sb.DateTimeFormat = SQLiteDateFormats.ISO8601;            
+            sb.DateTimeFormat = SQLiteDateFormats.ISO8601;
+            // sb.DefaultIsolationLevel = System.Data.IsolationLevel.ReadUncommitted; // for avoiding db access serialization
             m_connectionString = sb.ToString ();
             // execute initialization
             CreateTable ();
