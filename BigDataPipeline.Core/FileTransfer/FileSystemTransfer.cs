@@ -106,7 +106,10 @@ namespace BigDataPipeline.Core
                 return new FileTransferInfo[0];
 
             return System.IO.Directory.EnumerateFiles (folder, pattern, recursive ? System.IO.SearchOption.AllDirectories : System.IO.SearchOption.TopDirectoryOnly)
-                       .Select (i => new FileInfo (i)).Select (i => new FileTransferInfo (i.FullName, i.Length, i.CreationTime, i.LastWriteTime));
+                       .Take (10000)
+                       .Select (i => new FileInfo (i))
+                       .OrderBy (i => i.LastWriteTime)
+                       .Select (i => new FileTransferInfo (i.FullName, i.Length, i.CreationTime, i.LastWriteTime));
         }
 
         public IEnumerable<FileTransferInfo> ListFiles ()
@@ -141,11 +144,22 @@ namespace BigDataPipeline.Core
             // download files
             foreach (var f in _listFiles (folder, fileMask, recursive))
             {
-                yield return new StreamTransferInfo
+                StreamTransferInfo file = null;
+                try
                 {
-                    FileName = f.FileName,
-                    FileStream = new FileStream (f.FileName, FileMode.Open, FileAccess.Read, FileShare.Delete | FileShare.Read, FileServiceConnectionInfo.DefaultReadBufferSize)
-                };
+                    file = new StreamTransferInfo
+                    {
+                        FileName = f.FileName,
+                        FileStream = new FileStream (f.FileName, FileMode.Open, FileAccess.Read, FileShare.Delete | FileShare.Read, FileServiceConnectionInfo.DefaultReadBufferSize)
+                    };
+                } 
+                catch (Exception ex)
+                {
+                    LastError = ex.Message;
+                    // skip file
+                }
+                if (file != null)
+                    yield return file;
             }
         }
 
@@ -155,11 +169,22 @@ namespace BigDataPipeline.Core
             // download files
             foreach (var f in ListFiles ())
             {
-                yield return new StreamTransferInfo
+                StreamTransferInfo file = null;
+                try
                 {
-                    FileName = f.FileName,
-                    FileStream = new FileStream (f.FileName, FileMode.Open, FileAccess.Read, FileShare.Delete | FileShare.Read, FileServiceConnectionInfo.DefaultReadBufferSize)
-                };
+                    file = new StreamTransferInfo
+                    {
+                        FileName = f.FileName,
+                        FileStream = new FileStream (f.FileName, FileMode.Open, FileAccess.Read, FileShare.Delete | FileShare.Read, FileServiceConnectionInfo.DefaultReadBufferSize)
+                    };
+                }
+                catch (Exception ex)
+                {
+                    LastError = ex.Message;
+                    // skip file
+                }
+                if (file != null)
+                    yield return file;
             }
         }
 

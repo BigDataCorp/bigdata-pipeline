@@ -28,6 +28,7 @@ namespace BigDataPipeline
             {
                 AppDomain.CurrentDomain.ProcessExit += new EventHandler (CurrentDomain_ProcessExit);
 
+                // detect if there is any topshelf specific arguments
                 useTopshelfService = Console.IsOutputRedirected || args == null || args.Length == 0 || args.Any (i => topshelfArguments.Contains (i));
 
                 // system initialization
@@ -67,7 +68,10 @@ namespace BigDataPipeline
                 ConsoleUtils.DisplayHeader (PipelineServiceManager.DefaultServiceDisplayName);
             }
 
-            // run
+            
+            // run with topshelf if possible
+            // since topshelf argument parsing is very strict and unforgiving, 
+            // lets use the more flexible SimpleHelpers.ConsoleUtils command line parsing instead.
             if (useTopshelfService)
             {
                 InitializeService ();
@@ -165,7 +169,7 @@ namespace BigDataPipeline
                 // install is not implemented on linux, but can be executed!
                 host.UseLinuxIfAvailable ();
 
-                host.UseNLog ();
+               // host.UseNLog ();
                 
                 host.SetHelpTextPrefix ("\nService command line help text\n");
             });
