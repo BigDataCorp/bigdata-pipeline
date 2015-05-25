@@ -1,12 +1,10 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BigDataPipeline
 {
-    public class FlexibleOptions
+    public class FlexibleOptions : IEnumerable, IEnumerable<KeyValuePair<string, string>>
     {
         private bool _caseInsensitive = true;
         private Dictionary<string, string> _options;
@@ -23,6 +21,15 @@ namespace BigDataPipeline
                 return _options;
             }
             set { _options = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets the <see cref="string" /> with the specified key.
+        /// </summary>
+        public string this[string key]
+        {
+            get { return Get (key); }
+            set { Set (key, value); }
         }
 
         /// <summary>
@@ -248,6 +255,16 @@ namespace BigDataPipeline
                 }
             }
             return merge;
+        }
+
+        IEnumerator IEnumerable.GetEnumerator ()
+        {
+            return Options.GetEnumerator ();
+        }
+
+        public IEnumerator<KeyValuePair<string, string>> GetEnumerator ()
+        {
+            return Options.GetEnumerator ();
         }
     }
 }

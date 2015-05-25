@@ -1,9 +1,10 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace BigDataPipeline.Interfaces
 {
-    public class FlexibleObject
+    public class FlexibleObject : IEnumerable, IEnumerable<KeyValuePair<string, string>>
     {
         private bool _caseInsensitive = false;
         private Dictionary<string, string> _options;
@@ -20,6 +21,15 @@ namespace BigDataPipeline.Interfaces
                 return _options;
             }
             set { _options = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets the <see cref="string" /> with the specified key.
+        /// </summary>
+        public string this[string key]
+        {
+            get { return Get (key); }
+            set { Set (key, value); }
         }
 
         /// <summary>
@@ -245,6 +255,16 @@ namespace BigDataPipeline.Interfaces
                 }
             }
             return merge;
+        }
+
+        IEnumerator IEnumerable.GetEnumerator ()
+        {
+            return Options.GetEnumerator ();
+        }
+
+        public IEnumerator<KeyValuePair<string, string>> GetEnumerator ()
+        {
+            return Options.GetEnumerator ();
         }
     }
 }
