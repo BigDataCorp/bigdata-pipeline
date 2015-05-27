@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace BigDataPipeline.Interfaces
 {
-    public class FlexibleObject : IEnumerable, IEnumerable<KeyValuePair<string, string>>
+    public class FlexibleObject
     {
         private bool _caseInsensitive = false;
         private Dictionary<string, string> _options;
@@ -257,14 +257,5 @@ namespace BigDataPipeline.Interfaces
             return merge;
         }
 
-        IEnumerator IEnumerable.GetEnumerator ()
-        {
-            return Options.GetEnumerator ();
-        }
-
-        public IEnumerator<KeyValuePair<string, string>> GetEnumerator ()
-        {
-            return Options.GetEnumerator ();
-        }
     }
 }
