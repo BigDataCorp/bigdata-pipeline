@@ -284,9 +284,7 @@ namespace BigDataPipeline.Interfaces
         {
             if (pattern == null)
                 return false;
-            var wildCard1 = pattern.IndexOf ('*');
-            var wildCard2 = pattern.IndexOf ('?');
-            return (wildCard1 > 0 || wildCard2 > 0);
+            return (pattern.IndexOf ('*') > 0 || pattern.IndexOf ('?') > 0);
         }
 
         public static Tuple<string,string> SplitByWildcardPattern (string pattern)
