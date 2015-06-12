@@ -180,8 +180,9 @@ function ngSelect2BindDirective($q, $timeout) {
         return true;
     }
 
-    function checkAttributeExistance(attr) {
-        return (typeof attr !== 'undefined') && attr !== null;
+    function checkEnabledAttribute(attr, defaultValue) {
+        if (defaultValue && (!attr && attr !== '')) { return defaultValue; }
+        return !((!attr && attr !== '') || attr === 'false');
     }
 
     return {
@@ -190,9 +191,10 @@ function ngSelect2BindDirective($q, $timeout) {
         link: function (scope, element, attrs, controller) {
             //$(element).attrs("type", "hidden");
             // prepare possible attributes
-            attrs.multiple = checkAttributeExistance(attrs.multiple);
-            attrs.allowClear = checkAttributeExistance(attrs.allowClear);
-            attrs.disableValidation = checkAttributeExistance(attrs.disableValidation);
+            attrs.multiple = checkEnabledAttribute(attrs.multiple);
+            attrs.allowClear = checkEnabledAttribute(attrs.allowClear);
+            attrs.disableValidation = checkEnabledAttribute(attrs.disableValidation);
+
 
             // bind onChange event and create select2 component
             element.on("change", function (e) {
@@ -201,6 +203,10 @@ function ngSelect2BindDirective($q, $timeout) {
                     // update only if values differs
                     if (!valuesAreEqual(scope.ngModel, e.val)) {
                         scope.ngModel = e.val;
+                    }
+                    // signal change
+                    if (typeof scope.ngChange === 'function') {
+                        $timeout(scope.ngChange, 0);
                     }
                 });
             }).select2({
@@ -250,6 +256,7 @@ function ngSelect2BindDirective($q, $timeout) {
         scope: {
             ngModel: '=',
             select2Query: '&',
+            ngChange: '&'
         } //@ reads the attribute value, = provides two-way binding, & works with functions        
     };
 }
