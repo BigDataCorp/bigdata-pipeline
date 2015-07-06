@@ -113,6 +113,15 @@ namespace BigDataPipeline.Core
         {
             _logger.Debug ("[start] Loading modules...");
 
+            // adjust appdomain
+#pragma warning disable 0618
+            AppDomain.CurrentDomain.SetupInformation.ShadowCopyFiles = "true";
+            AppDomain.CurrentDomain.SetShadowCopyPath (String.Join (";",
+                 AppDomain.CurrentDomain.BaseDirectory,
+                  AppDomain.CurrentDomain.BaseDirectory + "/bin",
+                  String.Join(";", modulesFolder.Select (i => ModuleContainer.PrepareFilePath (i).Item1))));
+#pragma warning restore 0618
+
             // prepare list of interfaces/modules
             var interfaces = new Type[]
             {
