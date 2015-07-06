@@ -234,6 +234,17 @@
             </div>
         </div>
 
+        <div id="keyValueEditorDialog" style="width:440px;">
+            <div class="container-fluid bottom_margin_10">
+                <div class="form-group">
+                    <input type="text" class="form-control" ng-model="keyValueEditor.key" placeholder="key name"/>
+                </div>
+                <div class="form-group">
+                    <textarea class="form-control" rows="18" ng-model="keyValueEditor.value" placeholder="key value"></textarea>
+                </div>
+            </div>
+        </div>        
+
         <div id="cronEditorDialog" style="width:500px; height:350px;">
             <div class="container-fluid bottom_margin_10">
                 <h3>Scheduler editor</h3>
@@ -250,34 +261,26 @@
                 <div class="separator-4"></div>
             </div>
         </div>
-
-        <div id="addKeyDialog" style="width:400px;">
-            <div class="container-fluid bottom_margin_10">
-                <div class="form-group">
-                    <input type="text" class="form-control" ng-model="newKeyName" placeholder="key name" />
-                </div>
-                <div class="form-group">
-                    <input type="text" class="form-control" ng-model="newKeyValue" placeholder="key value" />
-                </div>
-            </div>
-        </div>
     </div>
 
     <script type="text/ng-template" id="optionsTable.template">
         <div class="table-responsive">
-            <table class="table table-condensed">
+            <table class="table table-condensed table-striped">
                 <thead>
                     <tr>
                         <th>Key</th>
                         <th>Value</th>
-                        <th><button type="button" role="button" ng-click="addKey(tableData)" class="btn btn-default btn-sm"><i class="fa fa-plus"></i></button></th>
+                        <th style="width: 84px;"><button type="button" role="button" ng-click="editKey(tableData)" class="btn btn-default btn-sm"><i class="fa fa-plus"></i></button></th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr ng-repeat="(key, value) in tableData">
-                        <td><input type="text" class="form-control" ng-model="key" readonly /></td>
-                        <td><input type="text" class="form-control" ng-model="tableData[key]" />
-                        <td><button type="button" role="button" ng-click="removeKey(tableData, key)" class="btn btn-default btn-sm"><i class="fa fa-times text-danger"></i></button></td>
+                        <td>{{key}}</td>
+                        <td class="word-break-all">{{ cropLongText(tableData[key], 200)}}</td>
+                        <td>
+                            <button type="button" role="button" ng-click="editKey(tableData, key)" class="btn btn-default btn-sm"><i class="fa fa-pencil"></i></button>
+                            <button type="button" role="button" ng-click="removeKey(tableData, key)" class="btn btn-default btn-sm"><i class="fa fa-times text-danger"></i></button>
+                        </td>
                     </tr>
                 </tbody>
             </table>
@@ -355,6 +358,8 @@
             }
         };
 
+        
+
         //** angularJs initialization **
         var ng_app = angular.module('app', ['ui.bootstrap.datetimepicker']);
         ng_app.directive('ngSelect2Bind', ['$q', '$timeout', ngSelect2BindDirective]);
@@ -365,8 +370,34 @@
             $scope.status = false;
             $scope.message = "loading...";
             $scope.jobList = [];
-
+                    
             //** methods and behaviors **
+
+            $scope.cropLongText = function (text, maxLength, removeHtml) {
+                text = text || "";
+                if (removeHtml) {
+                    // create a html node and use browser methods to get the text
+                    var dummyNode = document.createElement('div');
+                    dummyNode.innerHTML = text.replace(/>/g, '> ');
+                    text = dummyNode.innerText || dummyNode.textContent;
+                }
+                if (!maxLength || maxLength < 40) { maxLength = 40; }
+                var looseMax = Math.ceil(maxLength * 0.1);
+                if (looseMax < 10) { looseMax = 10; }
+
+                if (text.length <= maxLength)
+                    return text;
+                var textReduced = text.substring(0, maxLength - 10);
+
+                text = text.substring(maxLength - 10);
+                var ix = text.indexOf(" ");
+                if (ix < 0) { ix = 10; }
+                else if (ix > looseMax) { ix = 10; }
+                text = text.substring(0, ix);
+
+                return textReduced + text + " ...";
+            };
+
             $scope.executeQuery = function (url, operation, data, onsuccess, onerror) {
                 var p = {
                     op: operation,
@@ -781,22 +812,33 @@
                 }
 
                 return job;
-            };
-
-            $scope.addKey = function (dic, k, v) {
-                $scope.newKeyName = k || '';
-                $scope.newKeyValue = v || '';
-                simpleDialog.info($('#addKeyDialog'), function () {
-                    $timeout(function () {
-                        k = $scope.newKeyName;
-                        if (!k) { k = ''; }
-                        dic[k] = $scope.newKeyValue || '';
-                    });
-                });
-            };
+            };           
 
             $scope.removeKey = function (dic, k) {
                 delete dic[k];
+            };
+
+            $scope.editKey = function (dic, k, v) {
+                k = k || '';
+                $scope.keyValueEditor = {
+                    key: k,
+                    value: (!v ? dic[k] : v) || ''
+                };
+                var opts = {
+                    msg: $('#keyValueEditorDialog'),
+                    onSuccess: function () {
+                        if (!$scope.keyValueEditor.key) {
+                            return;
+                        }
+                        if (!!k && k !== $scope.keyValueEditor.key) {
+                            delete dic[k];
+                        }                    
+                        $timeout(function () {
+                            dic[$scope.keyValueEditor.key] = $scope.keyValueEditor.value;
+                        });                        
+                    }
+                };
+                simpleDialog.show(opts);
             };
 
             $scope.addChildAction = function (action) {
