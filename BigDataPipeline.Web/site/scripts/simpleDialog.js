@@ -23,8 +23,8 @@ var simpleDialog = function () {
         
         dlg.divAction = $('<div class="clearfix"></div>');
 
-        dlg.btnSuccess = $('<button type="button" style="min-width: 90px;" class="pull-right btn btn-default">OK</button>');
-        dlg.btnCancel = $('<button type="button" style="min-width: 90px;" class="pull-left btn btn-default">Cancelar</button>');
+        dlg.btnSuccess = $('<button type="button" style="min-width: 90px; max-width: 240px;" class="pull-right btn btn-default">OK</button>');
+        dlg.btnCancel = $('<button type="button" style="min-width: 90px; max-width: 240px;" class="pull-left btn btn-default">Cancelar</button>');
       
         dlg.divAction.append(dlg.btnCancel);
         dlg.divAction.append(dlg.btnSuccess);
@@ -58,7 +58,21 @@ var simpleDialog = function () {
             dlg.isClosing = false;
             dlg.isOpening = false;
             dlg.isOpen = true;
+            setTimeout(function () {
+                dlg._onDisplay();
+                if (dlg.lastOptions && typeof dlg.lastOptions.onDisplay == 'function') {
+                    dlg.lastOptions.onDisplay();
+                }
+            });            
         });
+    };
+
+    this._onDisplay = function () {
+        var e = dlg.divContent.find('input:first');
+        if (!e.length) {
+            e = dlg.lastOptions.hideCancelBtn ? dlg.btnSuccess : dlg.btnCancel;
+        }
+        e.focus();
     };
 
     this._executeTask = function () {
@@ -159,10 +173,13 @@ var simpleDialog = function () {
 
     // construct the dialog options
     this._prepareOptions = function (msg, onSuccess, onCancel, hideCancelBtn) {
-        var opt = (typeof msg === "object" && msg.msg && !(msg instanceof jQuery)) ? msg : { msg: msg || "" };
+        var opt = (typeof msg === "object" && (msg.msg || msg.content) && !(msg instanceof jQuery)) ? msg : { msg: msg || "" };
         if (typeof onSuccess === "function") { opt.onSuccess = onSuccess; }
         if (typeof onCancel === "function") { opt.onCancel = onCancel; }
         if (hideCancelBtn === true) { opt.hideCancelBtn = hideCancelBtn; }
+        // check content alias for msg
+        if (!opt.msg) { opt.msg = opt.content; }
+        // merge default options with custom options
         return $.extend({}, dlg.defaultOptions, opt);
     };
 
@@ -178,6 +195,7 @@ var simpleDialog = function () {
         // display content
         msg = opt.msg;
         dlg.lastMsg = msg;
+        dlg.lastOptions = opt;
         if (msg && msg instanceof jQuery) {
             dlg.lastMsgParent = msg.parent();
             if (dlg.lastMsgParent && dlg.lastMsgParent.length) {
@@ -203,6 +221,7 @@ var simpleDialog = function () {
         dlg.btnSuccess.toggle(!opt.hideSuccessBtn);
         dlg.btnCancel.toggle(!opt.hideCancelBtn);
         if (opt.hideCancelBtn || !(opt.onSuccess || opt.onCancel)) {
+            opt.hideCancelBtn = true;
             dlg.btnCancel.hide();
         } else {
             dlg.btnCancel.show();
