@@ -168,8 +168,6 @@ namespace BigDataPipeline
                 // enable mono service on linux! (topshelf.linux on nuget)
                 // install is not implemented on linux, but can be executed!
                 host.UseLinuxIfAvailable ();
-
-               // host.UseNLog ();
                 
                 host.SetHelpTextPrefix ("\nService command line help text\n");
             });

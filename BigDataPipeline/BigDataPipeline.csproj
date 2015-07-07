@@ -63,10 +63,6 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\Topshelf.Linux.1.0.11.10\lib\Topshelf.Linux.dll</HintPath>
     </Reference>
-    <Reference Include="Topshelf.NLog, Version=3.2.150.0, Culture=neutral, PublicKeyToken=b800c4cfcdeea87b, processorArchitecture=MSIL">
-      <HintPath>..\packages\Topshelf.NLog.3.2.0\lib\net40-full\Topshelf.NLog.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="Ude, Version=0.1.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\UDE.CSharp.1.1.0\lib\Ude.dll</HintPath>
       <Private>True</Private>
