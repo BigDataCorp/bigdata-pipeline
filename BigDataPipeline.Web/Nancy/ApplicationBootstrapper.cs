@@ -14,7 +14,8 @@ namespace BigDataPipeline.Web
         static NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger ();
         static Tuple<string, decimal>[] DefaultEmptyHeader = new[] { Tuple.Create ("application/json", 1.0m), Tuple.Create ("text/html", 0.9m), Tuple.Create ("*/*", 0.8m) };
         static Dictionary<string, string> moduleViews = new Dictionary<string, string> (StringComparer.OrdinalIgnoreCase);
-        static IAccessControlMapper accessControlContext = null;        
+        static IAccessControlMapper accessControlContext = null;
+        static bool disableAuthentication;
 
         protected override void ConfigureConventions (Nancy.Conventions.NancyConventions nancyConventions)
         {
@@ -87,23 +88,46 @@ namespace BigDataPipeline.Web
 
         protected override void ApplicationStartup (Nancy.TinyIoc.TinyIoCContainer container, Nancy.Bootstrapper.IPipelines pipelines)
         {
-            // configure nancy
-            Nancy.Diagnostics.DiagnosticsHook.Disable (pipelines);
-            StaticConfiguration.CaseSensitive = false;
-            StaticConfiguration.DisableErrorTraces = true;
-            StaticConfiguration.EnableRequestTracing = false;
+            disableAuthentication = BigDataPipeline.Core.PipelineService.Instance.SystemOptions.Get ("disableAuth", false);
+
+            // configure nancy            
+            StaticConfiguration.CaseSensitive = false;            
             Nancy.Json.JsonSettings.MaxJsonLength = 20 * 1024 * 1024;
+            // check if the debugmode flag is enabled
+            if (!BigDataPipeline.Core.PipelineService.Instance.SystemOptions.Get ("debugMode", false))
+            {
+                Nancy.Diagnostics.DiagnosticsHook.Disable (pipelines);
+                StaticConfiguration.DisableErrorTraces = true;
+                StaticConfiguration.EnableRequestTracing = false;
+
+                // log any errors only as debug 
+                pipelines.OnError.AddItemToStartOfPipeline ((ctx, ex) =>
+                {
+                    logger.Debug (ex);
+                    return null;
+                });
+            }
+            else
+            {
+                StaticConfiguration.DisableErrorTraces = false;
+                StaticConfiguration.EnableRequestTracing = true;
+                StaticConfiguration.Caching.EnableRuntimeViewDiscovery = true;
+                StaticConfiguration.Caching.EnableRuntimeViewUpdates = true;                
+
+                // log any errors as errors
+                pipelines.OnError.AddItemToStartOfPipeline ((ctx, ex) =>
+                {
+                    logger.Error (ex);
+                    return null;
+                });
+            }
 
 #if DEBUG
             StaticConfiguration.DisableErrorTraces = false;
             StaticConfiguration.EnableRequestTracing = true;
+            StaticConfiguration.Caching.EnableRuntimeViewDiscovery = true;
+            StaticConfiguration.Caching.EnableRuntimeViewUpdates = true;
 #endif
-            // log any errors
-            pipelines.OnError.AddItemToStartOfPipeline ((ctx, ex) =>
-            {
-                logger.Error (ex);
-                return null;
-            });
 
             // some additional response configuration
             pipelines.AfterRequest.AddItemToEndOfPipeline ((ctx) =>
@@ -197,18 +221,23 @@ namespace BigDataPipeline.Web
             // if authenticated, go on...
             if (ctx.CurrentUser != null)
                 return null;
-            
+
             // if login module, go on... (here we can put other routes without authentication)
             if (ctx.Request.Url.Path.IndexOf ("/login", StringComparison.OrdinalIgnoreCase) >= 0)
                 return null;
 
-            // check for token authentication: Header["Authorization"] with the session/token
+            // search for a session id or token
+            if (accessControlContext == null)
+                return null;
+
+            // 1. check for token authentication: Header["Authorization"] with the sessionId/token 
             string authToken = ctx.Request.Headers.Authorization;
             if (!String.IsNullOrEmpty (authToken))
             {
                 ctx.CurrentUser = accessControlContext.GetUserFromIdentifier (authToken, ctx);
             }
-            // check for token authentication: query parameter or form unencoded parameter
+
+            // 2. check for token authentication: query parameter or form unencoded parameter
             if (ctx.CurrentUser == null)
             {
                 authToken = TryGetRequestParameter (ctx, "token");
@@ -218,7 +247,7 @@ namespace BigDataPipeline.Web
                 }
             }
 
-            // finally, check if login and password were passed as parameters
+            // 3. finally, check if login and password were passed as parameters
             if (ctx.CurrentUser == null)
             {
                 var password = TryGetRequestParameter (ctx, "password");                
@@ -234,7 +263,10 @@ namespace BigDataPipeline.Web
                 }
             }
 
-            // analise if we got an authenticated user
+            // if authentication is disbled, go on...
+            if (disableAuthentication)
+                return null;
+            // analise if we got an authenticated user            
             return (ctx.CurrentUser == null) ? new Nancy.Responses.HtmlResponse (HttpStatusCode.Unauthorized) : null;
         }
 
