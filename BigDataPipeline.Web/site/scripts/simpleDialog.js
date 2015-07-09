@@ -13,7 +13,7 @@ var simpleDialog = function () {
     this._create = function () {
         if (dlg.divMain) { return; }
        
-        dlg.divMain = $('<div style="padding: 8px 8px 0px 8px; min-width: 250px; max-width: 600px;"></div>');
+        dlg.divMain = $('<div style="padding: 8px 8px 0px 8px; min-width: 250px; max-width: 100%;"></div>');
 
         dlg.divContent = $('<div style="min-height: 50px;"></div>');
 
