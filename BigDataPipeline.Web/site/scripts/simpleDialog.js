@@ -73,6 +73,7 @@ var simpleDialog = function () {
             e = dlg.lastOptions.hideCancelBtn ? dlg.btnSuccess : dlg.btnCancel;
         }
         e.focus();
+        resize();
     };
 
     this._executeTask = function () {
