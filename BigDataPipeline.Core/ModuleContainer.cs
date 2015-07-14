@@ -376,7 +376,7 @@ namespace BigDataPipeline.Core
         /// <returns></returns>
         private InstanceFactory CreateFactory (Type type)
         {
-            return CreateFactory (type.GetConstructors ().OrderByDescending (i => i.GetParameters ().Length).First ());
+            return CreateFactory (type.GetConstructors ().OrderBy (i => i.GetParameters ().Length).First ());
         }
 
         /// <summary>
@@ -389,35 +389,43 @@ namespace BigDataPipeline.Core
             // code http://rogeralsing.com/2008/02/28/linq-expressions-creating-objects/
             Type type = ctor.DeclaringType;
             ParameterInfo[] paramsInfo = ctor.GetParameters ();
-            // prepare parameters            
-            //create a single param of type object[]
-            var param = Expression.Parameter (typeof (object[]), "args");
+            LambdaExpression lambda;
 
-            var argsExp = new Expression[paramsInfo.Length];
-
-            //pick each arg from the params array 
-            //and create a typed expression of them
-            for (int i = 0; i < paramsInfo.Length; i++)
+            if (paramsInfo.Length > 0)
             {
-                var index = Expression.Constant (i);
-                Type paramType = paramsInfo[i].ParameterType;
+                // prepare parameters            
+                // create a single param of type object[]
+                var param = Expression.Parameter (typeof (object[]), "args");
 
-                var paramAccessorExp = Expression.ArrayIndex (param, index);
+                var argsExp = new Expression[paramsInfo.Length];
 
-                var paramCastExp = Expression.Convert (paramAccessorExp, paramType);
+                // pick each arg from the params array 
+                // and create a typed expression of them
+                for (int i = 0; i < paramsInfo.Length; i++)
+                {
+                    var index = Expression.Constant (i);
+                    Type paramType = paramsInfo[i].ParameterType;
 
-                argsExp[i] = paramCastExp;
+                    var paramAccessorExp = Expression.ArrayIndex (param, index);
+
+                    var paramCastExp = Expression.Convert (paramAccessorExp, paramType);
+
+                    argsExp[i] = paramCastExp;
+                }
+
+                // make a NewExpression that calls the
+                // ctor with the args we just created
+                var newExp = Expression.New (ctor, argsExp);
+
+                // create a lambda with the New
+                // Expression as body and our param object[] as arg
+                lambda = Expression.Lambda (typeof (InstanceFactory), newExp, param);
             }
-
-            //make a NewExpression that calls the
-            //ctor with the args we just created
-            var newExp = Expression.New (ctor, argsExp);
-           
-            //create a lambda with the New
-            //Expression as body and our param object[] as arg
-            var lambda = Expression.Lambda (typeof (InstanceFactory), newExp, param);
-
-            //compile it
+            else
+            {
+                lambda = Expression.Lambda (typeof (InstanceFactory), Expression.New (ctor));                
+            }
+            // compile it
             var compiled = (InstanceFactory)lambda.Compile ();
             return compiled;
         }
