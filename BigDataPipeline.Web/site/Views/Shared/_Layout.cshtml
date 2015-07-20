@@ -24,7 +24,6 @@
                 .Add("~/styles/select2/select2-bootstrap.css")
 
                 .Add("~/styles/datetimepicker.css")
-                .Add("~/styles/ui-grid-unstable.min.css")
                 .WithOutputBaseHref(Url.Content ("~/"))
                 .Render("~/styles/bundle.css"))
 
@@ -83,6 +82,7 @@
                 .Add ("~/scripts/angular.min.js")
                 .Add ("~/scripts/angular-animate.min.js")
                 .Add ("~/scripts/angular-touch.min.js")
+                .Add ("~/scripts/angular-sanitize.min.js")
 
                 .Add ("~/scripts/jquery.colorbox-min.js")
                 .Add ("~/scripts/jquery.cookie-1.4.1.min.js")
@@ -90,7 +90,7 @@
                 .Add ("~/scripts/moment-with-locales.min.js")
                 .Add ("~/scripts/jquery-gentleSelect-min.js")
                 .Add ("~/scripts/jquery-cron.min.js")
-                .Add ("~/scripts/lazy.min.js")
+                .Add ("~/scripts/underscore-min.js")
                 .Add ("~/scripts/simpleDialog.js")
                 .Add ("~/scripts/simpleTable.js")
                 .Add ("~/scripts/footable/footable.min.js")
@@ -99,11 +99,9 @@
                 .Add ("~/scripts/footable/footable.sort.min.js")
 
                 .Add ("~/scripts/select2/select2.min.js")
-                .Add ("~/scripts/select2/select2_locale_pt-BR.js")
                 .Add ("~/scripts/select2/select2_helpers.js")
 
                 .Add ("~/scripts/datetimepicker.js")
-                .Add ("~/scripts/ui-grid-unstable.min.js")
                 .WithOutputBaseHref (Url.Content ("~/"))
                 .Render ("~/scripts/bundle.js"))
 
@@ -153,6 +151,7 @@
 
         $(document).ready(function () {
             siteConfig.initializeBreadcrumb();
+            moment.locale('en');
         });
     </script>
 

@@ -90,7 +90,7 @@
         }
 
         //** angularJs initialization **
-        var ng_app = angular.module('app', []);
+        var ng_app = angular.module('app', ['ngSanitize', 'ngTouch', 'ngAnimate']);
         ng_app.directive('ngSelect2Bind', ['$q', '$timeout', ngSelect2BindDirective]);
 
         //** angularJs page main controller **

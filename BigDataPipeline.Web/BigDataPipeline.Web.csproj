@@ -124,6 +124,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="README.txt" />
+    <Content Include="site\scripts\angular-sanitize.min.js" />
     <Content Include="site\scripts\datetimepicker.js" />
     <Content Include="site\scripts\footable\footable.filter.min.js" />
     <Content Include="site\scripts\footable\footable.min.js" />
@@ -134,8 +135,8 @@
     <Content Include="site\scripts\select2\select2.js" />
     <Content Include="site\scripts\select2\select2.min.js" />
     <Content Include="site\scripts\select2\select2_helpers.js" />
-    <Content Include="site\scripts\select2\select2_locale_pt-BR.js" />
     <Content Include="site\scripts\simpleTable.js" />
+    <Content Include="site\scripts\underscore-min.js" />
     <Content Include="site\styles\datetimepicker.css" />
     <Content Include="site\styles\footable\fonts\footable.svg" />
     <Content Include="site\styles\footable\footable.core.css" />
@@ -151,8 +152,6 @@
     <Content Include="site\styles\select2\select2.css" />
     <Content Include="site\styles\select2\select2.png" />
     <Content Include="site\styles\select2\select2x2.png" />
-    <Content Include="site\styles\ui-grid-unstable.min.css" />
-    <Content Include="site\styles\ui-grid.svg" />
     <Content Include="site\scripts\angular-animate.min.js" />
     <Content Include="site\scripts\angular-touch.min.js" />
     <Content Include="site\scripts\angular.min.js" />
@@ -178,10 +177,10 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="site\scripts\simpleUtils.js" />
-    <Content Include="site\scripts\ui-grid-unstable.min.js" />
     <None Include="app.config" />
     <None Include="site\fonts\fontawesome-webfont.woff2" />
     <None Include="site\fonts\glyphicons-halflings-regular.woff2" />
+    <None Include="site\scripts\underscore-min.map" />
     <None Include="site\styles\bootstrap-theme.css.map" />
     <None Include="site\styles\bootstrap.css.map" />
     <Content Include="site\fonts\glyphicons-halflings-regular.eot">
@@ -197,9 +196,6 @@
     <None Include="site\styles\footable\fonts\footable.eot" />
     <None Include="site\styles\footable\fonts\footable.ttf" />
     <None Include="site\styles\footable\fonts\footable.woff" />
-    <None Include="site\styles\ui-grid.eot" />
-    <None Include="site\styles\ui-grid.ttf" />
-    <None Include="site\styles\ui-grid.woff" />
     <None Include="site\fonts\fontawesome-webfont.eot">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

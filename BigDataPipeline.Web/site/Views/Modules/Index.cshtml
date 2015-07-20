@@ -106,7 +106,7 @@
         }
 
         //** angularJs initialization **
-        var ng_app = angular.module('app', []);
+        var ng_app = angular.module('app', ['ngSanitize', 'ngTouch', 'ngAnimate']);
         ng_app.directive('ngSelect2Bind', ['$q', '$timeout', ngSelect2BindDirective]);
 
         //** angularJs page main controller **
@@ -225,7 +225,7 @@
                     var _this = this;
                     return $scope.executeModulesQuery('load', null, function (data) {
                         _this.list = data;
-                        _this.names = Lazy(_this.list).map(function (c) { return c.FullName; }).sort().toArray();
+                        _this.names = _.chain(_this.list).sortBy('FullName').pluck('FullName').value();
                     });
                 },
 

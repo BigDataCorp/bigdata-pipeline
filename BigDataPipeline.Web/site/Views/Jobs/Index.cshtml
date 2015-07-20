@@ -26,7 +26,7 @@
 
 
     <div class="table-responsive">
-        <table class="table table-condensed table-bordered table-striped table-hover" id="main-table" data-filter="#main-table-filter" data-filter-text-only="true" data-page-size="12" data-page-navigation="#main-table-pagination">
+        <table class="table table-condensed table-bordered table-striped table-hover" id="main-table" data-filter="#main-table-filter" data-filter-text-only="true" data-page-size="15" data-page-navigation="#main-table-pagination">
             <thead>
                 <tr>
                     <th class="text-center">Name</th>
@@ -355,7 +355,7 @@
         
 
         //** angularJs initialization **
-        var ng_app = angular.module('app', ['ui.bootstrap.datetimepicker']);
+        var ng_app = angular.module('app', ['ngSanitize', 'ngTouch', 'ngAnimate', 'ui.bootstrap.datetimepicker']);
         ng_app.directive('ngSelect2Bind', ['$q', '$timeout', ngSelect2BindDirective]);
 
         //** angularJs page main controller **
@@ -861,7 +861,7 @@
                     var _this = this;
                     return $scope.executeModulesQuery('load', null, function (data) {
                         _this.list = data;
-                        _this.names = Lazy(_this.list).map(function (c) { return c.FullName; }).sort().toArray();
+                        _this.names = _.chain(_this.list).sortBy('FullName').pluck('FullName').value();
                     });
                 },
 
@@ -883,7 +883,7 @@
 
             //**
             //** Startup and UI components configuration **
-            (function () {
+            (function () {                
                 // simple dialog localization
                 simpleDialog.defaultOptions.cancelButtonContent = 'Cancel';
 

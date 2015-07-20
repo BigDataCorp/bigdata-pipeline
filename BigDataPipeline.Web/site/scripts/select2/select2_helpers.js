@@ -38,7 +38,7 @@ function select2_initSelectionMulti(element, callback, data) {
         for (i = 0; i < k.length; ++i) {
             if (data && data.length) {
                 r = _select2_internalSearch(data, k[i], 'equals', 1);
-                if (r.length) { n[n.length] = r[0]; }
+                if (r.length) { n[n.length] = r[0].children ? r[0].children[0] : r[0]; }
             } else {
                 n[n.length] = { id: k[i], text: k[i] };
             }
@@ -48,7 +48,7 @@ function select2_initSelectionMulti(element, callback, data) {
 }
 
 function _select2_internalSearch(data, term, mode, limit) {
-    var i, l, n, c, r = [], j = 0, equals;
+    var i, l, n, c, r = [], equals;
     // sanity checks
     limit = limit || 2147483647;
     if (!data || !data.length) { return []; }
@@ -67,15 +67,15 @@ function _select2_internalSearch(data, term, mode, limit) {
     for (i = 0, l = data.length; i < l; ++i) {
         n = data[i];
         if (typeof n === 'string') {
-            if (equals(n, term)) { r[j++] = { id: n, text: n }; }
+            if (equals(n, term)) { r[r.length] = { id: n, text: n }; }
         } else if (n.children) {
             c = { id: n.id, text: n.text, disabled: n.disabled };
             c.children = _select2_internalSearch(n.children, term, limit);
-            r[j++] = c;
+            r[r.length] = c;
         } else if (equals(n.text, term) || equals(n.id, term)) {
-            r[j++] = n;
+            r[r.length] = n;
         }
-        if (j >= limit) { break; }
+        if (r.length >= limit) { break; }
     }
     return r;
 }
@@ -194,9 +194,10 @@ function ngSelect2BindDirective($q, $timeout) {
             attrs.multiple = checkEnabledAttribute(attrs.multiple);
             attrs.allowClear = checkEnabledAttribute(attrs.allowClear);
             attrs.disableValidation = checkEnabledAttribute(attrs.disableValidation);
-
-
+            scope.hasChangeListener = !!attrs.ngChange && typeof scope.ngChange === 'function';
+            
             // bind onChange event and create select2 component
+            // set change event
             element.on("change", function (e) {
                 // use a timeout method to safelly signal angularjs to refresh its context
                 $timeout(function () {
@@ -205,14 +206,17 @@ function ngSelect2BindDirective($q, $timeout) {
                         scope.ngModel = e.val;
                     }
                     // signal change
-                    if (typeof scope.ngChange === 'function') {
-                        $timeout(scope.ngChange, 0);
+                    if (scope.hasChangeListener) {
+                        $timeout(scope.ngChange);
                     }
                 });
             }).select2({
                 placeholder: attrs.placeholder,
                 allowClear: attrs.allowClear,
                 initSelection: function (element, callback) {
+                    if (!element || !element.val()) {                        
+                        return;
+                    }
                     var method = attrs.multiple ? select2_initSelectionMulti : select2_initSelectionSimple;
                     // simply put the new value or get possible value before initializing values
                     if (attrs.disableValidation) {
@@ -234,7 +238,8 @@ function ngSelect2BindDirective($q, $timeout) {
                             select2_prepareQuery(options, (r && r.data) ? r.data : (r && r.length) ? r : []);
                         });
                     }
-                }
+                },
+                formatNoMatches: attrs.formatNoMatches || undefined
             });
 
             // set intial value
@@ -246,7 +251,11 @@ function ngSelect2BindDirective($q, $timeout) {
             function updateSelectedValue(newValue, oldValue) {
                 if (newValue !== oldValue && !valuesAreEqual(newValue, element.select2('val'))) {
                     // update select2 values and also trigger the change event to make sure we got the correct selected values
-                    $(element).select2('val', newValue, true);
+                    element.select2('val', newValue, false);
+                    // signal change
+                    if (scope.hasChangeListener) {
+                        $timeout(scope.ngChange);
+                    }
                 }
             }
             scope.$watch('ngModel', updateSelectedValue);
