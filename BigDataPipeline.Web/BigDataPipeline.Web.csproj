@@ -180,6 +180,7 @@
     <None Include="app.config" />
     <None Include="site\fonts\fontawesome-webfont.woff2" />
     <None Include="site\fonts\glyphicons-halflings-regular.woff2" />
+    <None Include="site\scripts\angular-sanitize.min.js.map" />
     <None Include="site\scripts\underscore-min.map" />
     <None Include="site\styles\bootstrap-theme.css.map" />
     <None Include="site\styles\bootstrap.css.map" />

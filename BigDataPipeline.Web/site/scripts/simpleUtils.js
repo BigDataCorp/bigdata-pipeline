@@ -63,6 +63,18 @@ if (jQuery) {
 }
 
 /***************************
+ * string caps helpers
+ ****************************/
+String.prototype.capitalize = function () {
+    return this.toLowerCase().replace(/(?:^|\s)\S/g, function (a) { return a.toUpperCase(); });
+};
+
+String.prototype.capitalizeFirstLetter = function () {
+    return this.charAt(0).toUpperCase() + this.slice(1);
+};
+
+
+/***************************
  * Accentuation removal
  ****************************/
 
@@ -112,4 +124,8 @@ simpleUtils.removeAccentuation = function (str) {
     return str.replace(/[^\u0000-\u007E]/g, function (a) {
         return map[a] || a;
     });
+};
+
+simpleUtils.removeSpecialChars = function (str) {
+    return simpleUtils.removeAccentuation(str).replace(/[?,!,(,)]/g, "").replace(/\s/g, " ");
 };
