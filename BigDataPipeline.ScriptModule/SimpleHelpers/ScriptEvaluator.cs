@@ -51,6 +51,11 @@ namespace BigDataPipeline.ScriptModule.SimpleHelpers
         private Mono.CSharp.CompiledMethod _createMethod;
         private List<Assembly> _assemblies = new List<Assembly> ();
 
+        public Mono.CSharp.CompiledMethod CreateMethod
+        {
+            get { return _createMethod; }
+        }
+        
         public ScriptEvaluator (string csharpCode, string mainClassName)
             : this (csharpCode, mainClassName, null)
         {            
@@ -64,11 +69,6 @@ namespace BigDataPipeline.ScriptModule.SimpleHelpers
             HasError = false;
             if (baseType != null)
             AddReference (baseType);
-        }
-
-        public Mono.CSharp.CompiledMethod CreateMethod
-        {
-            get { return _createMethod; }
         }
 
         public static ScriptEvaluator Create (string csharpCode, string mainClassName)
