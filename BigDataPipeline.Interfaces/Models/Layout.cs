@@ -108,7 +108,7 @@ namespace BigDataPipeline.Interfaces
         public string this[int index]
         {
             get { return _fields[index]; }
-            set { _fields[index] = value; }
+            set { _fields[index] = value; reindex (); }
         }
 
         public Record Create ()
