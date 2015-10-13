@@ -93,6 +93,12 @@ namespace BigDataPipeline.Core
             Events.Clear ();
         }
 
+        public void Archive (TimeSpan expiration)
+        {
+            // TODO: Implement this method
+            throw new NotImplementedException ();
+        }
+
         public void Dispose ()
         {
             Flush ();

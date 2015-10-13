@@ -4,7 +4,7 @@ namespace BigDataPipeline.Interfaces
 {
     public class ActionLogEvent
     {
-        public object Id { get; set; }
+        public string Id { get; set; }
 
         public DateTime Date { get; set; }
 

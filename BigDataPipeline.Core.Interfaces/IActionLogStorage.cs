@@ -51,5 +51,11 @@ namespace BigDataPipeline.Core.Interfaces
         /// Flushes log events still in cache. Used by the pipeline after job execution.
         /// </summary>
         void Flush ();
+
+        /// <summary>
+        /// Archives the old log events.
+        /// </summary>
+        /// <param name="expiration">The expiration period.</param>
+        void Archive (TimeSpan expiration);
     }
 }

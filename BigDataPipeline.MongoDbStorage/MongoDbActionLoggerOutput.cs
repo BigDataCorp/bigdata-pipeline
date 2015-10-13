@@ -35,7 +35,7 @@ namespace BigDataPipeline.Mongo
         public void Write (ActionLogEvent item)
         {
             if (item.Id == null)
-                item.Id = MongoDB.Bson.ObjectId.GenerateNewId ();
+                item.Id = MongoDB.Bson.ObjectId.GenerateNewId ().ToString();
             _db.GetCollection<ActionLogEvent> ("ActionLog").SafeSave (item);
         }
 
@@ -50,7 +50,7 @@ namespace BigDataPipeline.Mongo
                 for (int i = 0; i < items.Count; i++)
                 {
                     if (items[i].Id == null)
-                        items[i].Id = MongoDB.Bson.ObjectId.GenerateNewId ();
+                        items[i].Id = MongoDB.Bson.ObjectId.GenerateNewId ().ToString ();
                 }
                 _db.GetCollection<ActionLogEvent> ("ActionLog").SafeInsertBatch (items);
             }
@@ -92,6 +92,11 @@ namespace BigDataPipeline.Mongo
         public void Flush ()
         {
             
+        }
+
+        public void Archive (TimeSpan expiration)
+        {
+            _db.GetCollection<ActionLogEvent> ("ActionLog").Remove (Query.LT ("Date", DateTime.UtcNow.Subtract (expiration)), RemoveFlags.None);
         }
 
         public void Dispose ()

@@ -84,12 +84,12 @@ namespace BigDataPipeline.Core
             // prepare access control module
             PrepareAccessControl (_systemOptions);
 
-            // update storage configuration values
+            //// update storage configuration values
             //foreach (var cfgKey in _systemOptions.Layout)
             //{
             //    _storage.SaveConfigValue (cfgKey, _systemOptions.Get (cfgKey, ""));
             //}
-            // load other configuration values from storage
+            //// load other configuration values from storage
             //foreach (var cfg in _storage.GetConfigValues ())
             //{
             //    _systemOptions.Set (cfg.Key, cfg.Value);

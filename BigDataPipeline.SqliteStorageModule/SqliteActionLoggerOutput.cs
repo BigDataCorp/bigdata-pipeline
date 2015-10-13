@@ -68,6 +68,11 @@ namespace BigDataPipeline.SqliteStorage
             
         }
 
+        public void Archive (TimeSpan expiration)
+        {
+            actionLogDb.Remove (DateTime.UtcNow.Subtract (expiration));
+        }
+
         public void Dispose ()
         {
             Flush ();
