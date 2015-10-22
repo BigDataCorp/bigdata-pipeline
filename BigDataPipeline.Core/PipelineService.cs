@@ -231,7 +231,7 @@ namespace BigDataPipeline.Core
             {
                 if (actionLogWriter != null)
                 {
-                    actionLogWriter.GlobalInitialize (systemOptions);
+                    actionLogWriter.GlobalInitialize (systemOptions);                    
                 }
                 else 
                 {
@@ -311,7 +311,12 @@ namespace BigDataPipeline.Core
             }
 
             // increment execution counter
-            _systemStatus.Set<long> ("excutionCount", _systemStatus.Get<long> ("excutionCount", 0) + 1);
+            var execCount = _systemStatus.Get<long> ("excutionCount", 0);
+            _systemStatus.Set<long> ("excutionCount", execCount + 1);
+            if (execCount % 500 == 0)
+            {
+                InternalMaintenance ();
+            }
 
             // execute task internal loop
             TaskExecutionPipeline.Instance.Execute ();
@@ -331,6 +336,18 @@ namespace BigDataPipeline.Core
             EventExecutionPipeline.Instance.EndUpdatePhase ();
 
             _logger.Trace ("Execution phase end");
+        }
+
+        private void InternalMaintenance ()
+        {
+            // archieve log messages...
+            using (var actionLogWriter = ModuleContainer.Instance.GetInstanceAs<IActionLogStorage> (_actionLoggerOutputModuleName))
+            {
+                if (actionLogWriter != null)
+                {
+                    actionLogWriter.Archive (TimeSpan.FromDays (14));
+                }
+            }
         }
 
         public void CheckSchedullers (PipelineJob job)

@@ -117,9 +117,15 @@ namespace BigDataPipeline.LuceneStorage
             using (var session = GetDb ().OpenSession<ActionLogEvent> (actionLogMapper))
             {
                 var threshold = DateTime.UtcNow.Subtract (expiration);
-                var query = session.Query ().Where (i => i.Date < threshold);
-                foreach (var i in query)
-                    session.Delete (new Lucene.Net.Search.TermQuery (new Lucene.Net.Index.Term ("Id", i.Id)));
+                var list = new List<ActionLogEvent> ();
+                list.AddRange (session.Query ().Where (i => i.Date < threshold).Take (250));
+                while (list.Count > 0)
+                {
+                    foreach (var i in list)
+                        session.Delete (new Lucene.Net.Search.TermQuery (new Lucene.Net.Index.Term ("Id", i.Id)));
+                    list.Clear ();
+                    list.AddRange (session.Query ().Where (i => i.Date < threshold).Take (250));
+                }
             }
         }
 

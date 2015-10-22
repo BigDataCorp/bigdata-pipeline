@@ -64,7 +64,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SqliteActionLoggerOutput.cs" />
+    <Compile Include="LuceneActionLogStorage.cs" />
     <Compile Include="LuceneStorageModule.cs" />
     <Compile Include="LuceneStorage.cs" />
   </ItemGroup>

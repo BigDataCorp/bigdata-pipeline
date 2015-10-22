@@ -95,8 +95,7 @@ namespace BigDataPipeline.Core
 
         public void Archive (TimeSpan expiration)
         {
-            // TODO: Implement this method
-            throw new NotImplementedException ();
+            // noop
         }
 
         public void Dispose ()
