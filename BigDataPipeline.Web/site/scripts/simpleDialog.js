@@ -15,7 +15,7 @@ var simpleDialog = function () {
 
     this._create = function () {
         if (dlg.divMain) { return; }
-       
+
         dlg.divMain = $("<div style='padding: 8px 8px 0px 8px; min-width: 250px; max-width: 100%;'></div>");
 
         dlg.divContent = $("<div style='min-height: 50px;'></div>");
@@ -23,12 +23,12 @@ var simpleDialog = function () {
         dlg.divLoading = $("<div style='text-align: center; padding: 16px;'><i class='fa fa-circle-o-notch fa-spin fa-4x'></i></div>");
 
         dlg.divMessage = $("<div></div>");
-        
+
         dlg.divAction = $("<div class='clearfix'></div>");
 
         dlg.btnSuccess = $("<button type='button' style='min-width: 90px; max-width: 240px;'>OK</button>");
         dlg.btnCancel = $("<button type='button' style='min-width: 90px; max-width: 240px;'>Cancelar</button>");
-      
+
         dlg.divAction.append(dlg.btnCancel);
         dlg.divAction.append(dlg.btnSuccess);
 
@@ -44,7 +44,7 @@ var simpleDialog = function () {
 
         dlg.btnSuccess.click(function () { dlg.close(); if (dlg.onSuccess) { dlg.onSuccess(); } });
         dlg.btnCancel.click(function () { dlg.close(); if (dlg.onCancel) { dlg.onCancel(); } });
-                
+
         dlg.isClosing = false;
         $(document).bind("cbox_closed", function () {
             dlg.isClosing = false;
@@ -66,7 +66,7 @@ var simpleDialog = function () {
                 if (dlg.lastOptions && typeof dlg.lastOptions.onDisplay === "function") {
                     dlg.lastOptions.onDisplay();
                 }
-            });            
+            });
         });
     };
 
@@ -122,14 +122,14 @@ var simpleDialog = function () {
 
     this._closeDialog = function () {
         if (!dlg.isOpening) {
-            dlg.isClosing = true;            
+            dlg.isClosing = true;
             $.colorbox.close();
             dlg._cleanUpLastDisplay();
             dlg._setTask("reset");
         } else {
             dlg._setTask("close");
         }
-    };    
+    };
 
     this._openDialog = function () {
         if (!dlg.isClosing && !dlg.isOpening) {
@@ -328,7 +328,7 @@ var simpleDialog = function () {
      */
     this.warning = function (msg, onSuccess, onCancel, hideCancelBtn) {
         dlg._mode = "warning";
-        dlg._prepareDialog(msg || "Operação realizada com sucesso.", onSuccess, onCancel, hideCancelBtn);
+        dlg._prepareDialog(msg || "", onSuccess, onCancel, hideCancelBtn);
         dlg.divMessage.toggleClass("alert", true);
         dlg.divMessage.toggleClass("alert-warning", true);
         dlg.divMessage.prepend("<i class='fa fa-info-circle fa-2x pull-left' style='margin-right: 18px;'></i>");
@@ -371,7 +371,7 @@ var simpleDialog = function () {
      */
     this.show = function (msg, onSuccess, onCancel, hideCancelBtn) {
         dlg._mode = "show";
-        dlg._prepareDialog(msg || "Operação realizada com sucesso.", onSuccess, onCancel, hideCancelBtn);
+        dlg._prepareDialog(msg || "", onSuccess, onCancel, hideCancelBtn);
         dlg._loadingCounter = -10;
         dlg._displayDialog();
     };
