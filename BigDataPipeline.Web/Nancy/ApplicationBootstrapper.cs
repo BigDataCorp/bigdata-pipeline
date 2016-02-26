@@ -154,6 +154,8 @@ namespace BigDataPipeline.Web
                 pipelines.BeforeRequest.AddItemToStartOfPipeline (AllResourcesAuthentication);
 
                 // set forms authentication
+                // NOTE: this session cookie password could be random and saved to disk for persistence...
+                var salt = Encoding.UTF8.GetBytes ("PipelineSaltProvider");
                 var formsAuthConfiguration = new FormsAuthenticationConfiguration ()
                 {
                     RedirectUrl = "~/login",
@@ -161,8 +163,8 @@ namespace BigDataPipeline.Web
                     //RequiresSSL = true,
                     // note: the default CryptographyConfiguration uses the same salt key
                     CryptographyConfiguration = new Nancy.Cryptography.CryptographyConfiguration (
-                        new Nancy.Cryptography.RijndaelEncryptionProvider (new Nancy.Cryptography.PassphraseKeyGenerator ("encryption" + this.GetType ().FullName, Encoding.UTF8.GetBytes ("PipelineSaltProvider"))),
-                        new Nancy.Cryptography.DefaultHmacProvider (new Nancy.Cryptography.PassphraseKeyGenerator ("HMAC" + this.GetType ().FullName, Encoding.UTF8.GetBytes ("PipelineSaltProvider"))))
+                        new Nancy.Cryptography.RijndaelEncryptionProvider (new Nancy.Cryptography.PassphraseKeyGenerator ("encryption" + this.GetType ().FullName, salt)),
+                        new Nancy.Cryptography.DefaultHmacProvider (new Nancy.Cryptography.PassphraseKeyGenerator ("HMAC" + this.GetType ().FullName, salt)))
                 };
 
                 FormsAuthentication.Enable (pipelines, formsAuthConfiguration);
@@ -393,9 +395,10 @@ namespace BigDataPipeline.Web
         public string ResolveAppRelativePathToFileSystem (string file)
         {
             // Remove query string
-            if (file.IndexOf ('?') != -1)
+            var i = file.IndexOf ('?');
+            if (i != -1)
             {
-                file = file.Substring (0, file.IndexOf ('?'));
+                file = file.Substring (0, i);
             }
 
             return rootPath + file.TrimStart ('~').TrimStart ('/');
@@ -406,7 +409,12 @@ namespace BigDataPipeline.Web
             var root = new Uri (rootPath);
             return root.MakeRelativeUri (new Uri (file, UriKind.RelativeOrAbsolute)).ToString ();
         }
-    }
 
-        
+        public string BuildAbsolutePath (string siteRelativePath)
+        {            
+            // since we do not have the current context, we cannot build the absolut path...
+            // last time I checked this method was used only in AddDynamic method.
+            throw new NotImplementedException ();
+        }
+    }
 }
