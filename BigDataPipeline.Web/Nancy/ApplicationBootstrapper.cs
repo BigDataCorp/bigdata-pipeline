@@ -201,7 +201,7 @@ namespace BigDataPipeline.Web
 
             // substitute nancy default assembly registration to a faster selected loading... (5x faster loading...)
             var nancyEngineAssembly = typeof (NancyEngine).Assembly;
-            HashSet<string> blackListedAssemblies = new HashSet<string> (StringComparer.OrdinalIgnoreCase) { "mscorlib", "vshost", "BigDataPipeline", "NLog", "Newtonsoft.Json", "Topshelf", "Topshelf.Linux", "Topshelf.NLog", "AWSSDK", "Dapper", "Mono.CSharp", "Mono.Security", "NCrontab", "Renci.SshNet", "System.Net.FtpClient", "MongoDB.Bson", "MongoDB.Driver", "System.Data.SQLite", "System.Net.Http.Formatting", "System.Web.Razor", "Microsoft.Owin.Hosting", "Microsoft.Owin", "Owin" };
+            HashSet<string> blackListedAssemblies = new HashSet<string> (StringComparer.OrdinalIgnoreCase) { "mscorlib", "vshost", "BigDataPipeline", "NLog", "Newtonsoft.Json", "Topshelf", "Topshelf.Linux", "Topshelf.NLog", "AWSSDK", "Dapper", "Mono.CSharp", "Mono.Security", "NCrontab", "Renci.SshNet", "System.Net.FtpClient", "MongoDB.Bson", "MongoDB.Driver", "System.Data.SQLite", "System.Net.Http.Formatting", "System.Web.Razor", "Microsoft.Owin.Hosting", "Microsoft.Owin.Diagnostics", "Microsoft.Owin", "Owin", "AjaxMin", "EcmaScript.NET" };
             container.AutoRegister (AppDomain.CurrentDomain.GetAssemblies ().Where (a => !a.GlobalAssemblyCache && !a.IsDynamic && !blackListedAssemblies.Contains (ParseAssemblyName (a.FullName))), Nancy.TinyIoc.DuplicateImplementationActions.RegisterMultiple, t => t.Assembly != nancyEngineAssembly);
 
             // register json.net default options
