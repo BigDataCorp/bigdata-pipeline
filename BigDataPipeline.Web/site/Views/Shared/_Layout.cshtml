@@ -41,6 +41,20 @@
 <body class="bg_bootstrap_purple">
     <div class="container-fluid">
         <div class="container ft_white">
+            <ul class="list-unstyled list-inline pull-right padding-top-8">
+                @{
+                    if (Context != null && Context.CurrentUser != null)
+                    {
+                        <li>@Context.CurrentUser.UserName</li>
+                        <li><a href="@Url.Content("~/logout")" class="no-decorations ft_white" title="Logout"><i class="fa fa-sign-out"></i></a></li>
+                    }
+                    else
+                    {
+                        <li><a href="@Url.Content("~/login")" class="no-decorations ft_white" title="Login"><i class="fa fa-sign-in"></i></a></li>
+                    }
+                }
+            </ul>
+
             <h1>BigData Pipeline Manager</h1>
 
             <div class="separator-8"></div>
@@ -92,6 +106,7 @@
                 .Add ("~/scripts/jquery-cron.min.js")
                 .Add ("~/scripts/underscore-min.js")
                 .Add ("~/scripts/simpleDialog.js")
+                .Add ("~/scripts/simpleState.js")
                 .Add ("~/scripts/simpleTable.js")
                 .Add ("~/scripts/footable/footable.min.js")
                 .Add ("~/scripts/footable/footable.filter.min.js")
