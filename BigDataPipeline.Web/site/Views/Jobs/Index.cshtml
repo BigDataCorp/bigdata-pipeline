@@ -15,6 +15,7 @@
         <div class="col-sm-4">
             <button class="btn btn-default margin-right-16" role="button" ng-click="refresh()">Refresh</button>
             <button class="btn btn-default margin-right-16" role="button" ng-click="addNewJob()">Add Job</button>
+            <button class="btn btn-default margin-right-16" role="button" ng-click="showSettings()">Settings</button>
         </div>
 
         <div class="col-sm-8">
@@ -26,7 +27,7 @@
 
 
     <div class="table-responsive">
-        <table class="table table-condensed table-bordered table-striped table-hover" id="main-table" data-filter="#main-table-filter" data-filter-text-only="true" data-page-size="15" data-page-navigation="#main-table-pagination">
+        <table class="table table-condensed table-bordered table-striped table-hover" id="main-table" data-filter="#main-table-filter" data-filter-text-only="true" data-page-size="{{settings.pageSize}}" data-page-navigation="#main-table-pagination">
             <thead>
                 <tr>
                     <th class="text-center">Name</th>
@@ -239,6 +240,16 @@
             <div class="form-group">
                 <textarea class="form-control" rows="20" ng-model="keyValueEditor.value" placeholder="key value"></textarea>
             </div>
+        </div>
+        
+        <div id="keyValueSearchDialog" style="width:500px;max-width:100%;">
+            <div class="form-group">
+                Suggested keys:<br />
+                <input type="hidden" class="width-full" ng-select2-bind ng-model="keyValueEditor.key" select2-query="keyValueEditor.getSuggestions()" disable-validation />                
+            </div>
+            <div class="form-group">
+                <textarea class="form-control" rows="20" ng-model="keyValueEditor.value" placeholder="key value"></textarea>
+            </div>
         </div>        
 
         <div id="cronEditorDialog" style="width:500px; max-width:100%; height:350px;">
@@ -255,6 +266,14 @@
             <b>Selected cron text: </b> <span id="cronEditorDialogCtrlText"></span>
             <div class="separator-4"></div>
         </div>
+
+        <div id="settingsDialog" style="width:500px;max-width:100%;">
+            <h3>Settings</h3>
+            <div class="form-group">
+                Table page size:<br />
+                <input type="hidden" class="width-full" ng-select2-bind ng-model="settings.pageSize" select2-query="getPageSizes()" disable-validation />
+            </div>
+        </div>  
     </div>
 
     <script type="text/ng-template" id="optionsTable.template">
@@ -264,7 +283,10 @@
                     <tr>
                         <th>Key</th>
                         <th>Value</th>
-                        <th style="width: 84px;"><button type="button" role="button" ng-click="editKey(tableData)" class="btn btn-default btn-sm"><i class="fa fa-plus"></i></button></th>
+                        <th style="width: 84px;">
+                            <button type="button" role="button" ng-click="chooseKey(tableData)" class="btn btn-default btn-sm" title="Choose suggested settings"><i class="fa fa-search-plus"></i></button>
+                            <button type="button" role="button" ng-click="editKey(tableData)" class="btn btn-default btn-sm" title="Add custom setting and value"><i class="fa fa-plus"></i></button>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -286,7 +308,7 @@
             <div class="col-sm-6">
                 <div class="form-group">
                     Module:<br />
-                    <input type="hidden" class="width-full" ng-select2-bind ng-model="action.Module" select2-query="modules.getNames()" placeholder="Select a module..." disable-validation />
+                    <input type="hidden" class="width-full" ng-select2-bind ng-model="action.Module" select2-query="modules.getNames()" placeholder="Select a module..." disable-validation ng-change="updateSuggestions(action)" />
                 </div>
                 <div class="form-group">
                     Action Options:<br />
@@ -351,7 +373,6 @@
                 return _count(job.RootAction);
             }
         };
-
         
 
         //** angularJs initialization **
@@ -364,8 +385,13 @@
             $scope.status = false;
             $scope.message = "loading...";
             $scope.jobList = [];
+
+            $scope.settings = simplePageState.get("settings", null) || { pageSize: 15 };
                     
             //** methods and behaviors **
+            $(window).bind('beforeunload', function (e) {
+                simplePageState.set("settings", $scope.settings);
+            });
 
             $scope.cropLongText = function (text, maxLength, removeHtml) {
                 text = text || "";
@@ -616,6 +642,9 @@
                     $scope.selectedJob = item;
                     $scope.selectedJobSnapshot = angular.toJson(item);
                     $scope.refreshEditAreaJson();
+
+                    item.Options.$$getSuggestions = function () { return [ 'behavior::concurrentJobExecutionsLimit' ]; };
+
                 } else {
                  //   $scope.clearItem();
                 }
@@ -646,6 +675,24 @@
                 }
             };
 
+            $scope.drawTable = function (data) {
+                // diplay data (table population and row selection)
+                $('#main-table').data('simpleTable').populateTable(data);
+
+                // fooTable initilization (sort and pagination)
+                if (!$('#main-table').data('footable')) {
+                    $('#main-table').footable();
+                } else {
+                    //$('#main-table').data('footable').redraw();
+                    $('#main-table').trigger('footable_initialize');
+                }
+
+                // since we are using simpleTable and fooTable to handle table generation,
+                // we must tell angulaJs to recognize this new nodes...
+                // angularJs compile: tells angular to parse the newly created HTML nodes
+                $compile($('#main-table'))($scope);
+            };
+
             $scope.refresh = function () {
                 $scope.showMessage("loading...");
 
@@ -655,20 +702,8 @@
                         var lastSelectedItem = $scope.selectedJob;
                         $scope.selectItem(null);
                         $scope.jobList = data;
-                        // diplay data (table population and row selection)
-                        $('#main-table').data('simpleTable').populateTable(data);
-
-                        // fooTable initilization (sort and pagination)
-                        if (!$('#main-table').data('footable')) {
-                            $('#main-table').footable();
-                        } else {
-                            $('#main-table').data('footable').redraw();
-                        }
-
-                        // since we are using simpleTable and fooTable to handle table generation,
-                        // we must tell angulaJs to recognize this new nodes...
-                        // angularJs compile: tells angular to parse the newly created HTML nodes
-                        $compile($('#main-table'))($scope);
+                        
+                        $scope.drawTable(data);
 
                         // refresh selected item
                         $timeout(function () {
@@ -835,6 +870,29 @@
                 simpleDialog.show(opts);
             };
 
+            $scope.chooseKey = function (dic) {
+                $scope.keyValueEditor = {
+                    key: '',
+                    value: ''
+                };
+                $scope.keyValueEditor.getSuggestions = dic.$$getSuggestions || function () { return []; };
+                var opts = {
+                    content: $('#keyValueSearchDialog'),
+                    onSuccess: function () {
+                        if ($scope.keyValueEditor.key) {
+                            $timeout(function () {
+                                dic[$scope.keyValueEditor.key] = $scope.keyValueEditor.value;
+                            });
+                        }
+                    }
+                };
+                simpleDialog.show(opts);
+            };
+
+            $scope.updateSuggestions = function (action) {
+                action.Options.$$getSuggestions = function () { return _.map($scope.modules.getModule(action.Module).Parameters, function (i) { return i.Name }); };
+            };
+
             $scope.addChildAction = function (action) {
                 if (!action.Actions) { action.Actions = []; }
                 action.Actions.push({});
@@ -851,6 +909,22 @@
                             action.Options[k.Name] = '';
                     }
                 }
+            };
+
+            $scope.showSettings = function () {
+                var opts = {
+                    content: $('#settingsDialog'),
+                    hideCancelBtn: true,
+                    onSuccess: function () {                        
+                        $('#main-table').data('page-size', $scope.settings.pageSize);
+                        $scope.drawTable($scope.jobList);
+                    }
+                };
+                simpleDialog.show(opts);
+            };
+
+            $scope.getPageSizes = function () {
+                return ["5", "10", "15", "20", "25", "50", "100", "250", "1000" ];
             };
 
             //**
@@ -873,10 +947,11 @@
                     var l = this.list || [], i;
                     for (i = 0; i < l.length; i++) {
                         if (l[i].FullName === name) {
+                            if (!l[i].Parameters) { l[i].Parameters = []; }
                             return l[i];
                         }
                     }
-                    return {};
+                    return { Parameters: [] };
                 }
             };
 
