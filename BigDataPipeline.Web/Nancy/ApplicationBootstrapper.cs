@@ -116,7 +116,7 @@ namespace BigDataPipeline.Web
 
                 // log any errors as errors
                 pipelines.OnError.AddItemToStartOfPipeline ((ctx, ex) =>
-                {
+                {                    
                     logger.Error (ex);
                     return null;
                 });

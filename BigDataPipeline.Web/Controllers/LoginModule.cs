@@ -14,7 +14,7 @@ namespace BigDataPipeline.Web.site.Controllers
         {
             _module = module;
 
-            Get["/logout"] = _ => this.LogoutAndRedirect ("/login");
+            Get["/logout"] = _ => this.LogoutAndRedirect ("~/login");
             Post["/logout"] = _ => this.LogoutWithoutRedirect ();
             
             Get["/login"] = GetLoginPage;
